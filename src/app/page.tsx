@@ -23,19 +23,21 @@ const T = {
 };
 
 /* ── Scroll reveal hook ── */
-function useReveal(threshold = 0.15) {
+function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Fallback: always show after 900ms in case observer misses
+    const fallback = setTimeout(() => setVisible(true), 900);
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold }
+      ([e]) => { if (e.isIntersecting) { setVisible(true); clearTimeout(fallback); obs.disconnect(); } },
+      { threshold: 0, rootMargin: "0px 0px -40px 0px" }
     );
     obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
+    return () => { obs.disconnect(); clearTimeout(fallback); };
+  }, []);
   return { ref, visible };
 }
 
@@ -615,7 +617,7 @@ function HeroSection({ heroVisible, onCTA }: { heroVisible: boolean; onCTA: () =
         position: "absolute",
         top: "50%", left: "50%",
         width: "780px", height: "780px",
-        background: "radial-gradient(circle at 40% 40%, rgba(127, 125, 252, 0.32) 0%, rgba(244, 75, 204, 0.16) 38%, rgba(229, 237, 245, 0.3) 65%, transparent 85%)",
+        background: "radial-gradient(circle at 40% 40%, rgba(127, 125, 252, 0.55) 0%, rgba(244, 75, 204, 0.28) 38%, rgba(229, 237, 245, 0.4) 65%, transparent 85%)",
         borderRadius: "50%",
         animation: "floatGlow 9s ease-in-out infinite",
         pointerEvents: "none",
@@ -629,7 +631,7 @@ function HeroSection({ heroVisible, onCTA }: { heroVisible: boolean; onCTA: () =
         position: "absolute",
         top: "22%", right: "10%",
         width: "460px", height: "460px",
-        background: "radial-gradient(circle, rgba(128, 135, 255, 0.22) 0%, rgba(83, 58, 253, 0.08) 50%, transparent 75%)",
+        background: "radial-gradient(circle, rgba(128, 135, 255, 0.42) 0%, rgba(83, 58, 253, 0.16) 50%, transparent 75%)",
         borderRadius: "50%",
         animation: "floatGlow2 11s ease-in-out infinite",
         pointerEvents: "none",
@@ -643,7 +645,7 @@ function HeroSection({ heroVisible, onCTA }: { heroVisible: boolean; onCTA: () =
         position: "absolute",
         bottom: "10%", left: "8%",
         width: "320px", height: "320px",
-        background: "radial-gradient(circle, rgba(255, 97, 24, 0.08) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(255, 97, 24, 0.16) 0%, transparent 70%)",
         borderRadius: "50%",
         animation: "floatGlow3 13s ease-in-out infinite",
         pointerEvents: "none",
@@ -1074,7 +1076,7 @@ const SEV_STYLE: Record<string, { bg: string; color: string; dot: string }> = {
 
 function SampleReport({ onCTA }: { onCTA: () => void }) {
   const [unlocked, setUnlocked] = useState(false);
-  const { ref, visible } = useReveal(0.1);
+  const { ref, visible } = useReveal();
 
   return (
     <section className="section-pad section-vpad" style={{ background: T.porcelain, padding: "96px 40px" }}>
@@ -1450,9 +1452,9 @@ function ExitIntent({ onCTA, onDismiss }: { onCTA: () => void; onDismiss: () => 
 /* ── Video testimonial ── */
 function VideoTestimonial() {
   const [playing, setPlaying] = useState(false);
-  const { ref, visible } = useReveal(0.1);
+  const { ref, visible } = useReveal();
   return (
-    <section className="section-pad section-vpad" style={{ background: T.white, padding: "80px 40px" }}>
+    <section className="section-pad section-vpad" style={{ background: T.porcelain, padding: "80px 40px" }}>
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
@@ -1860,7 +1862,7 @@ export default function LandingPage() {
       <ROICalculator onCTA={() => setModalOpen(true)} />
 
       {/* ── Value ── */}
-      <section className="section-pad section-vpad" style={{ background: T.white, padding: "96px 40px" }}>
+      <section className="section-pad section-vpad" style={{ background: T.powder, padding: "96px 40px" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: "64px" }}>
@@ -2026,7 +2028,7 @@ export default function LandingPage() {
       <GuaranteeSection onCTA={() => setModalOpen(true)} />
 
       {/* ── Testimonials ── */}
-      <section className="section-pad section-vpad" style={{ background: T.porcelain, padding: "96px 40px" }}>
+      <section className="section-pad section-vpad" style={{ background: T.powder, padding: "96px 40px" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: "56px" }}>
