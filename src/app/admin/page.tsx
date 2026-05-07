@@ -757,54 +757,52 @@ export default function AdminDashboard() {
 
         {/* ── Sidebar ── */}
         <aside style={{
-          width: sidebarCollapsed ? "56px" : "220px",
+          width: sidebarCollapsed ? "56px" : "224px",
           background: T.white,
           borderRight: `1px solid ${T.powder}`,
           display: "flex", flexDirection: "column",
-          padding: sidebarCollapsed ? "20px 8px" : "20px 12px",
           flexShrink: 0,
-          transition: "width 260ms cubic-bezier(0.23, 1, 0.32, 1), padding 260ms cubic-bezier(0.23, 1, 0.32, 1)",
+          transition: "width 260ms cubic-bezier(0.23, 1, 0.32, 1)",
           overflow: "hidden",
           position: "relative",
         }}>
-          {/* Logo + collapse toggle */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px", minHeight: "32px" }}>
-            {!sidebarCollapsed && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", animation: "slideIn 0.2s ease" }}>
-                <div style={{ width: "26px", height: "26px", borderRadius: "6px", background: T.violet, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.9" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: "14px", fontWeight: 600, color: T.ink, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>AuditAI</span>
+          {/* Logo */}
+          <div style={{
+            height: "56px", display: "flex", alignItems: "center",
+            padding: sidebarCollapsed ? "0 16px" : "0 20px",
+            borderBottom: `1px solid ${T.powder}`,
+            flexShrink: 0,
+            justifyContent: sidebarCollapsed ? "center" : "flex-start",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+              <div style={{
+                width: "28px", height: "28px", borderRadius: "6px",
+                background: T.violet, display: "flex", alignItems: "center",
+                justifyContent: "center", flexShrink: 0,
+              }}>
+                <svg width="13" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.95" />
+                </svg>
               </div>
-            )}
-            <button
-              onClick={() => setSidebarCollapsed(c => !c)}
-              style={{
-                width: "28px", height: "28px", border: `1px solid ${T.powder}`,
-                borderRadius: "6px", background: "transparent", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: T.ghost, flexShrink: 0,
-                transition: "background 150ms ease, color 150ms ease",
-                marginLeft: sidebarCollapsed ? "auto" : "0",
-                marginRight: sidebarCollapsed ? "auto" : "0",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = T.powder; e.currentTarget.style.color = T.ink; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.ghost; }}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                {sidebarCollapsed
-                  ? <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  : <path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                }
-              </svg>
-            </button>
+              {!sidebarCollapsed && (
+                <span style={{
+                  fontSize: "15px", fontWeight: 600, color: T.ink,
+                  letterSpacing: "-0.02em", whiteSpace: "nowrap",
+                  animation: "slideIn 0.18s ease",
+                }}>AuditAI</span>
+              )}
+            </div>
           </div>
 
-          {/* Nav items */}
-          <nav style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
+          {/* Nav */}
+          <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: "1px", overflowY: "auto" }}>
+            {!sidebarCollapsed && (
+              <p style={{
+                fontSize: "10px", fontWeight: 600, color: T.ghost,
+                letterSpacing: "0.06em", padding: "4px 10px 8px",
+                margin: 0, textTransform: "uppercase",
+              }}>Navigation</p>
+            )}
             {NAV.map(item => {
               const active = tab === item.id;
               return (
@@ -814,86 +812,117 @@ export default function AdminDashboard() {
                   title={sidebarCollapsed ? item.label : undefined}
                   style={{
                     display: "flex", alignItems: "center",
-                    gap: "10px",
-                    padding: sidebarCollapsed ? "9px" : "9px 10px",
+                    gap: "9px",
+                    padding: sidebarCollapsed ? "10px 0" : "9px 10px",
                     borderRadius: "6px", border: "none",
                     cursor: "pointer",
                     justifyContent: sidebarCollapsed ? "center" : "flex-start",
                     background: active ? T.violetBg : "transparent",
-                    color: active ? T.violet : T.ghost,
-                    transition: "background 150ms ease, color 150ms ease",
-                    width: "100%",
+                    color: active ? T.violet : T.slate,
+                    transition: "background 130ms ease, color 130ms ease",
+                    width: "100%", position: "relative",
+                    boxShadow: active ? `inset 3px 0 0 ${T.violet}` : "none",
                   }}
                   onMouseEnter={e => { if (!active) { e.currentTarget.style.background = T.porcelain; e.currentTarget.style.color = T.ink; } }}
-                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.ghost; } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.slate; } }}
                 >
-                  <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
+                  <span style={{ flexShrink: 0, display: "flex", opacity: active ? 1 : 0.7 }}>{item.icon}</span>
                   {!sidebarCollapsed && (
                     <span style={{
-                      fontSize: "13px", fontWeight: active ? 600 : 400,
+                      fontSize: "13px", fontWeight: active ? 500 : 400,
                       letterSpacing: "-0.005em", whiteSpace: "nowrap",
                       animation: "slideIn 0.18s ease",
                     }}>
                       {item.label}
                     </span>
                   )}
-                  {active && !sidebarCollapsed && (
-                    <span style={{ marginLeft: "auto", width: "5px", height: "5px", borderRadius: "50%", background: T.violet, flexShrink: 0 }} />
-                  )}
                 </button>
               );
             })}
           </nav>
 
-          {/* User pill */}
-          <div style={{
-            padding: sidebarCollapsed ? "8px" : "10px 10px",
-            borderRadius: "7px", background: T.porcelain,
-            display: "flex", alignItems: "center", gap: "10px",
-            border: `1px solid ${T.powder}`,
-          }}>
+          {/* Bottom: collapse toggle + user */}
+          <div style={{ borderTop: `1px solid ${T.powder}`, padding: "12px 8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+            {/* Collapse toggle */}
+            <button
+              onClick={() => setSidebarCollapsed(c => !c)}
+              style={{
+                display: "flex", alignItems: "center", gap: "9px",
+                padding: sidebarCollapsed ? "9px 0" : "9px 10px",
+                borderRadius: "6px", border: "none", background: "transparent",
+                cursor: "pointer", color: T.ghost, width: "100%",
+                justifyContent: sidebarCollapsed ? "center" : "flex-start",
+                transition: "background 130ms ease, color 130ms ease",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = T.porcelain; e.currentTarget.style.color = T.ink; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.ghost; }}
+              title={sidebarCollapsed ? "Expand" : "Collapse"}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0, transform: sidebarCollapsed ? "rotate(180deg)" : "none", transition: "transform 260ms cubic-bezier(0.23,1,0.32,1)" }}>
+                <path d="M5 3L9 7.5 5 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 3v9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              {!sidebarCollapsed && (
+                <span style={{ fontSize: "13px", animation: "slideIn 0.18s ease" }}>Collapse</span>
+              )}
+            </button>
+
+            {/* User */}
             <div style={{
-              width: "28px", height: "28px", borderRadius: "50%",
-              background: `linear-gradient(135deg, ${T.violet} 0%, ${T.soft} 100%)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "12px", fontWeight: 700, color: T.white, flexShrink: 0,
+              display: "flex", alignItems: "center", gap: "9px",
+              padding: sidebarCollapsed ? "9px 0" : "9px 10px",
+              borderRadius: "6px", justifyContent: sidebarCollapsed ? "center" : "flex-start",
             }}>
-              J
+              <div style={{
+                width: "26px", height: "26px", borderRadius: "50%",
+                background: `linear-gradient(135deg, #533afd 0%, #8087ff 100%)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "11px", fontWeight: 700, color: "#fff", flexShrink: 0,
+              }}>J</div>
+              {!sidebarCollapsed && (
+                <div style={{ animation: "slideIn 0.18s ease", overflow: "hidden", minWidth: 0 }}>
+                  <p style={{ fontSize: "13px", fontWeight: 500, color: T.ink, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>John Doe</p>
+                  <p style={{ fontSize: "11px", color: T.ghost, margin: 0 }}>Admin</p>
+                </div>
+              )}
             </div>
-            {!sidebarCollapsed && (
-              <div style={{ animation: "slideIn 0.18s ease", overflow: "hidden" }}>
-                <p style={{ fontSize: "13px", fontWeight: 500, color: T.ink, margin: 0, whiteSpace: "nowrap" }}>John Doe</p>
-                <p style={{ fontSize: "11px", color: T.ghost, margin: 0 }}>Admin</p>
-              </div>
-            )}
           </div>
         </aside>
 
         {/* ── Main ── */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
 
-          {/* Top bar */}
+          {/* ── Top bar ── */}
           <header style={{
             background: T.white,
             borderBottom: `1px solid ${T.powder}`,
-            padding: "0 24px",
-            height: "54px",
+            padding: "0 28px",
+            height: "56px",
             display: "flex", alignItems: "center", justifyContent: "space-between",
             flexShrink: 0, gap: "16px",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "11px", color: T.ghost }}>Admin</span>
-              <span style={{ fontSize: "11px", color: T.stone }}>/</span>
-              <span style={{ fontSize: "13px", fontWeight: 500, color: T.ink }}>
+            {/* Page title */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+              <h1 style={{
+                fontSize: "15px", fontWeight: 600, color: T.ink,
+                letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2,
+              }}>
                 {NAV.find(n => n.id === tab)?.label}
-              </span>
+              </h1>
+              <p style={{ fontSize: "11px", color: T.ghost, margin: 0 }}>
+                {tab === "dashboard" && "Overview & key metrics"}
+                {tab === "orders" && `${ORDERS.length} total orders`}
+                {tab === "assessments" && `${ASSESSMENTS.length} assessments`}
+                {tab === "reports" && `${REPORTS.length} reports generated`}
+                {tab === "settings" && "Account & integrations"}
+              </p>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               {/* Search */}
               {(tab === "orders" || tab === "assessments") && (
                 <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ position: "absolute", left: "10px", color: T.ghost }}>
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ position: "absolute", left: "10px", color: T.ghost, pointerEvents: "none" }}>
                     <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4" />
                     <path d="M9 9l2.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                   </svg>
@@ -902,42 +931,44 @@ export default function AdminDashboard() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     style={{
-                      padding: "6px 12px 6px 30px",
+                      padding: "7px 12px 7px 30px",
                       border: `1.5px solid ${T.stone}`,
                       borderRadius: "6px", fontSize: "13px",
                       color: T.ink, background: T.porcelain,
-                      outline: "none", width: "180px",
+                      outline: "none", width: "188px",
                       transition: "border-color 160ms ease, width 220ms ease",
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = T.violet; e.currentTarget.style.width = "220px"; }}
-                    onBlur={e => { e.currentTarget.style.borderColor = T.stone; e.currentTarget.style.width = "180px"; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = T.violet; e.currentTarget.style.width = "224px"; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = T.stone; e.currentTarget.style.width = "188px"; }}
                   />
                 </div>
               )}
 
-              {/* Notification bell — click to fire a toast */}
+              {/* Divider */}
+              <div style={{ width: "1px", height: "20px", background: T.powder, margin: "0 2px" }} />
+
+              {/* Notification bell */}
               <button
                 onClick={() => { push(LIVE_EVENTS[eventIdx.current % LIVE_EVENTS.length]); eventIdx.current++; }}
                 style={{
-                  width: "34px", height: "34px", borderRadius: "7px",
-                  border: `1.5px solid ${T.powder}`, background: "transparent",
+                  width: "32px", height: "32px", borderRadius: "6px",
+                  border: "none", background: "transparent",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                   color: T.ghost, position: "relative",
-                  transition: "background 150ms ease",
+                  transition: "background 130ms ease, color 130ms ease",
                 }}
-                title="Simulate live notification"
-                onMouseEnter={e => e.currentTarget.style.background = T.porcelain}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                title="Notifications"
+                onMouseEnter={e => { e.currentTarget.style.background = T.porcelain; e.currentTarget.style.color = T.ink; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.ghost; }}
               >
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                   <path d="M7.5 1.5C5.01 1.5 3 3.51 3 6v4l-1.5 1.5h12L12 10V6c0-2.49-2.01-4.5-4.5-4.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
                   <path d="M6 12.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" />
                 </svg>
                 <span style={{
-                  position: "absolute", top: "6px", right: "6px",
+                  position: "absolute", top: "5px", right: "5px",
                   width: "6px", height: "6px", borderRadius: "50%",
-                  background: T.orange, border: `1.5px solid ${T.white}`,
-                  animation: "pulse 2s ease-in-out infinite",
+                  background: "#ff6118", border: `1.5px solid ${T.white}`,
                 }} />
               </button>
 
@@ -945,30 +976,40 @@ export default function AdminDashboard() {
               <button
                 onClick={toggleDark}
                 title={dark ? "Light mode" : "Dark mode"}
-                style={{ width: "34px", height: "34px", borderRadius: "7px", border: `1.5px solid ${T.powder}`, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ghost, transition: "background 150ms ease" }}
-                onMouseEnter={e => e.currentTarget.style.background = T.porcelain as string}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                style={{
+                  width: "32px", height: "32px", borderRadius: "6px",
+                  border: "none", background: "transparent",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: T.ghost, transition: "background 130ms ease, color 130ms ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = T.porcelain; e.currentTarget.style.color = T.ink; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.ghost; }}
               >
-                {dark ? (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
-                ) : (
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11.5 8.5A5.5 5.5 0 014.5 1.5a5.5 5.5 0 100 10 5.5 5.5 0 007-3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>
-                )}
+                {dark
+                  ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                  : <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11.5 8.5A5.5 5.5 0 014.5 1.5a5.5 5.5 0 100 10 5.5 5.5 0 007-3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>
+                }
               </button>
 
+              {/* Divider */}
+              <div style={{ width: "1px", height: "20px", background: T.powder, margin: "0 2px" }} />
+
+              {/* View site — DESIGN.md outlined button */}
               <a href="/" style={{
-                display: "flex", alignItems: "center", gap: "5px",
-                fontSize: "12px", color: T.ghost, textDecoration: "none",
-                padding: "6px 12px", borderRadius: "6px",
-                border: `1.5px solid ${T.powder}`,
-                transition: "all 150ms ease",
+                display: "flex", alignItems: "center", gap: "6px",
+                fontSize: "13px", fontWeight: 400, color: T.violet,
+                textDecoration: "none",
+                padding: "6px 14px", borderRadius: "4px",
+                border: `1.5px solid ${T.washed}`,
+                background: "transparent",
+                transition: "background 130ms ease, border-color 130ms ease",
+                whiteSpace: "nowrap",
               }}
-                onMouseEnter={e => { e.currentTarget.style.color = T.violet as string; e.currentTarget.style.borderColor = T.washed as string; e.currentTarget.style.background = T.violetBg as string; }}
-                onMouseLeave={e => { e.currentTarget.style.color = T.ghost as string; e.currentTarget.style.borderColor = T.powder as string; e.currentTarget.style.background = "transparent"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = T.violetBg; e.currentTarget.style.borderColor = T.violet; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = T.washed; }}
               >
                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                  <path d="M7 1H2v8h7V4.5L7 1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-                  <path d="M7 1v3.5H10" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                  <path d="M1.5 5.5h8M6 2l3.5 3.5L6 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 View site
               </a>
