@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Order confirmed — AuditAI",
+  title: "Order confirmed — AssessAI",
   robots: { index: false },
 };
 

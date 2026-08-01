@@ -26,7 +26,7 @@ function confirmationEmail(customerEmail: string, name: string, company: string)
                 <td style="background:#533afd;border-radius:6px;width:26px;height:26px;text-align:center;vertical-align:middle">
                   <span style="color:#ffffff;font-size:12px;font-weight:700">▲</span>
                 </td>
-                <td style="padding-left:10px;color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em">AuditAI</td>
+                <td style="padding-left:10px;color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em">AssessAI</td>
               </tr>
             </table>
           </td>
@@ -77,7 +77,7 @@ function confirmationEmail(customerEmail: string, name: string, company: string)
         <!-- Footer -->
         <tr>
           <td style="background:#f8fafd;border-top:1px solid #e5edf5;padding:18px 36px;text-align:center">
-            <p style="margin:0;font-size:11px;color:#64748d">© 2026 AuditAI · <a href="https://auditai.co" style="color:#533afd;text-decoration:none">auditai.co</a></p>
+            <p style="margin:0;font-size:11px;color:#64748d">© 2026 AssessAI powered by EraseFriction · <a href="https://erasefriction.com" style="color:#533afd;text-decoration:none">erasefriction.com</a></p>
           </td>
         </tr>
       </table>
@@ -123,9 +123,9 @@ export async function POST(req: NextRequest) {
     if (customerEmail) {
       try {
         await resend.emails.send({
-          from: process.env.FROM_EMAIL ?? "hello@auditai.co",
+          from: process.env.FROM_EMAIL ?? "support@erasefriction.com",
           to: customerEmail,
-          subject: "Your AuditAI assessment is confirmed",
+          subject: "Your AssessAI assessment is confirmed",
           html: confirmationEmail(customerEmail, name, company),
         });
       } catch (err) {

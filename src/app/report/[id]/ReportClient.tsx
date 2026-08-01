@@ -355,7 +355,10 @@ export default function ReportClient({ report, id }: Props) {
             <div style={{ background: "var(--c-violet)", borderRadius: "5px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ color: "#fff", fontSize: "10px", fontWeight: 700 }}>▲</span>
             </div>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.01em" }}>AuditAI</span>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
+              <span style={{ fontSize: "9px", fontWeight: 400, color: "var(--c-slate, #64748b)", lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
+            </div>
           </div>
         </div>
 

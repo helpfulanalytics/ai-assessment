@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "AuditAI — Find the $10K+ Your Business Is Leaking in 5 Days";
+export const alt = "AssessAI — Find the $10K+ Your Business Is Leaking in 5 Days";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -86,7 +86,7 @@ export default function OGImage() {
               </svg>
             </div>
             <span style={{ fontSize: "22px", fontWeight: 600, color: "#ffffff", letterSpacing: "-0.01em" }}>
-              AuditAI
+              AssessAI
             </span>
           </div>
 

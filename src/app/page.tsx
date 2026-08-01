@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Settings, BarChart2, RefreshCw, Users, Bot, Map } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { auth } from "../lib/firebase-client";
+import { onAuthStateChanged } from "firebase/auth";
 
 /* ── Design tokens (CSS custom properties — swapped by dark mode) ── */
 const T = {
@@ -1270,7 +1273,10 @@ function MobileNav({ open, onClose, onCTA }: { open: boolean; onClose: () => voi
           <div style={{ width: "26px", height: "26px", borderRadius: "6px", background: "#533afd", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.9" /></svg>
           </div>
-          <span style={{ fontSize: "15px", fontWeight: 400, color: "#061b31", letterSpacing: "-0.01em" }}>AuditAI</span>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontSize: "15px", fontWeight: 600, color: "#061b31", letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
+            <span style={{ fontSize: "10px", fontWeight: 400, color: "#64748b", lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
+          </div>
         </div>
         <button
           onClick={onClose}
@@ -1600,23 +1606,23 @@ const SCHEMA = {
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "https://auditai.co/#org",
-      name: "AuditAI",
-      url: "https://auditai.co",
+      "@id": "https://erasefriction.com/#org",
+      name: "AssessAI",
+      url: "https://erasefriction.com",
       description: "AI-powered business assessment delivering $10,000+ in identified savings in 5 days.",
     },
     {
       "@type": "Product",
-      "@id": "https://auditai.co/#product",
+      "@id": "https://erasefriction.com/#product",
       name: "AI Business Assessment",
       description: "A senior consultant audits your entire business — tools, pricing, processes, and team — and delivers a prioritized roadmap in 5 business days.",
-      brand: { "@type": "Brand", name: "AuditAI" },
+      brand: { "@type": "Brand", name: "AssessAI" },
       offers: {
         "@type": "Offer",
         price: "997",
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
-        seller: { "@id": "https://auditai.co/#org" },
+        seller: { "@id": "https://erasefriction.com/#org" },
       },
       aggregateRating: {
         "@type": "AggregateRating",
@@ -1673,6 +1679,17 @@ export default function LandingPage() {
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [exitIntent, setExitIntent] = useState(false);
   const exitShown = useRef(false);
+  const router = useRouter();
+
+  // Redirect if logged in
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push("/admin");
+      }
+    });
+    return () => unsub();
+  }, [router]);
 
   // Landing page is always light
   useEffect(() => {
@@ -1739,7 +1756,10 @@ export default function LandingPage() {
               <path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.9" />
             </svg>
           </div>
-          <span style={{ fontSize: "15px", fontWeight: 600, color: T.ink, letterSpacing: "-0.01em" }}>AuditAI</span>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontSize: "15px", fontWeight: 600, color: T.ink, letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
+            <span style={{ fontSize: "10px", fontWeight: 400, color: T.slate, lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
+          </div>
         </div>
 
         {/* Desktop nav links */}
@@ -2164,7 +2184,10 @@ export default function LandingPage() {
                   <path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.9" />
                 </svg>
               </div>
-              <span style={{ fontSize: "15px", fontWeight: 600, color: T.white, letterSpacing: "-0.01em" }}>AuditAI</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: "15px", fontWeight: 600, color: T.white, letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
+                <span style={{ fontSize: "10px", fontWeight: 400, color: T.ghost, lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
+              </div>
             </div>
 
             <p style={{ fontSize: "14px", color: T.washed, lineHeight: 1.7, maxWidth: "268px", margin: "0 0 28px" }}>
@@ -2232,7 +2255,7 @@ export default function LandingPage() {
           flexWrap: "wrap", gap: "12px",
         }}>
           <p style={{ fontSize: "12px", color: T.ghost, margin: 0 }}>
-            © 2026 AuditAI. All rights reserved.
+            © 2026 AssessAI powered by EraseFriction. All rights reserved.
           </p>
           <div className="footer-trust" style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
             {["Secured by Stripe", "30-day guarantee", "Read-only access"].map(t => (

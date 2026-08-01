@@ -11,10 +11,10 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const doc = await adminDb.collection("audits").doc(id).get();
-  if (!doc.exists) return { title: "Report not found — AuditAI" };
+  if (!doc.exists) return { title: "Report not found — AssessAI" };
   const data = doc.data() as AuditReport;
   return {
-    title: `Audit Report: ${data.targetUrl} — AuditAI`,
+    title: `Audit Report: ${data.targetUrl} — AssessAI`,
     description: data.summary,
   };
 }

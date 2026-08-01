@@ -1099,11 +1099,10 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               {!sidebarCollapsed && (
-                <span style={{
-                  fontSize: "15px", fontWeight: 600, color: T.ink,
-                  letterSpacing: "-0.02em", whiteSpace: "nowrap",
-                  animation: "slideIn 0.18s ease",
-                }}>AuditAI</span>
+                <div style={{ display: "flex", flexDirection: "column", animation: "slideIn 0.18s ease" }}>
+                  <span style={{ fontSize: "15px", fontWeight: 600, color: "#1e293b", letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
+                  <span style={{ fontSize: "10px", fontWeight: 400, color: "#64748b", lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
+                </div>
               )}
             </div>
           </div>
@@ -1193,10 +1192,10 @@ export default function AdminDashboard() {
                 background: `linear-gradient(135deg, #533afd 0%, #8087ff 100%)`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "11px", fontWeight: 700, color: "#fff", flexShrink: 0,
-              }}>J</div>
+              }}>{user?.email ? user.email.charAt(0).toUpperCase() : "A"}</div>
               {!sidebarCollapsed && (
                 <div style={{ animation: "slideIn 0.18s ease", overflow: "hidden", minWidth: 0 }}>
-                  <p style={{ fontSize: "13px", fontWeight: 500, color: T.ink, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>John Doe</p>
+                  <p style={{ fontSize: "13px", fontWeight: 500, color: T.ink, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email || "Admin User"}</p>
                   <p style={{ fontSize: "11px", color: T.ghost, margin: 0 }}>Admin</p>
                 </div>
               )}

@@ -396,9 +396,10 @@ export default function DashboardPage() {
                 </svg>
               </div>
               {!sidebarCollapsed && (
-                <span style={{ fontSize: "15px", fontWeight: 600, color: T.ink, letterSpacing: "-0.02em", whiteSpace: "nowrap", animation: "slideIn 0.18s ease" }}>
-                  AuditAI
-                </span>
+                <div style={{ display: "flex", flexDirection: "column", animation: "slideIn 0.18s ease" }}>
+                  <span style={{ fontSize: "15px", fontWeight: 600, color: "#1e293b", letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
+                  <span style={{ fontSize: "10px", fontWeight: 400, color: "#64748b", lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
+                </div>
               )}
             </div>
           </div>
