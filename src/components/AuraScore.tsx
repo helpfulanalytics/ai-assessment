@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 
 interface AuraScoreProps {
   score: number;
+  bare?: boolean;
 }
 
-export default function AuraScore({ score }: AuraScoreProps) {
+export default function AuraScore({ score, bare = false }: AuraScoreProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
 
   useEffect(() => {
@@ -35,19 +36,19 @@ export default function AuraScore({ score }: AuraScoreProps) {
   const pill = getPillStyle(score);
 
   return (
-    <div className="card-elevated flex flex-col items-center justify-center p-8 text-center h-full">
+    <div className={`flex flex-col items-center justify-center text-center h-full ${bare ? "" : "card-elevated p-8"}`}>
       <p
         className="text-muted-ash mb-5 font-medium"
-        style={{ fontSize: "12px", letterSpacing: "0.3px", color: "#6d6c6b" }}
+        style={{ fontSize: "12px", letterSpacing: "0.3px", color: "var(--c-slate)" }}
       >
         Overall Aura Score
       </p>
 
       <div className="relative flex items-center justify-center w-48 h-48 mb-5">
-        <svg className="w-full h-full -rotate-90">
+        <svg className="w-full h-full -rotate-90" role="img" aria-label={`Aura score: ${animatedScore} out of 100`}>
           <circle
             cx="96" cy="96" r={radius}
-            stroke="rgba(17,17,17,0.06)" strokeWidth="10" fill="transparent"
+            stroke="var(--c-stone)" strokeWidth="10" fill="transparent" opacity="0.3"
           />
           <circle
             cx="96" cy="96" r={radius}
@@ -69,11 +70,11 @@ export default function AuraScore({ score }: AuraScoreProps) {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
             className="font-black tabular-nums"
-            style={{ fontSize: "48px", lineHeight: 1, letterSpacing: "-2.24px", color: "#111111" }}
+            style={{ fontSize: "48px", lineHeight: 1, letterSpacing: "-2.24px", color: "var(--c-ink)" }}
           >
             {animatedScore}
           </span>
-          <span style={{ fontSize: "12px", color: "#6d6c6b", letterSpacing: "0.3px" }}>
+          <span style={{ fontSize: "12px", color: "var(--c-slate)", letterSpacing: "0.3px" }}>
             out of 100
           </span>
         </div>

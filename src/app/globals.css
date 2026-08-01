@@ -52,7 +52,25 @@ body {
   font-feature-settings: "ss01" on, "tnum";
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  transition: background 220ms ease, color 220ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body { transition: background 220ms ease, color 220ms ease; }
+}
+
+/* Global focus-visible ring */
+:focus-visible {
+  outline: 2px solid var(--c-violet);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* prefers-reduced-motion: disable scroll-reveal transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }

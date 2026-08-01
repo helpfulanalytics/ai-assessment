@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { CreditCard, Check, Phone, Zap, ClipboardList, Loader2, Lock } from "lucide-react";
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, User } from "firebase/auth";
+import { db, auth } from "../../lib/firebase-client";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import AuditRunner from "../../components/AuditRunner";
+import AuraScore from "../../components/AuraScore";
+import BentoGrid from "../../components/BentoGrid";
+import IssueDrawer from "../../components/IssueDrawer";
+import type { AuditReport, AuditIssue } from "../../data/mockAuditData";
 
 /* ── Design tokens (CSS custom properties — swapped by dark mode) ── */
 const T = {
@@ -22,44 +32,184 @@ const T = {
   violetBg:  "var(--c-violet-bg)",
 };
 
+/* ── Helper ── */
+function formatDateShort(val: unknown, defaultText = "Recent"): string {
+  if (!val) return defaultText;
+  try {
+    let d = new Date(val as string | number);
+    if (val && typeof val === "object" && "toDate" in val && typeof (val as { toDate: () => Date }).toDate === "function") {
+      d = (val as { toDate: () => Date }).toDate();
+    }
+    if (isNaN(d.getTime())) return defaultText;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch (e) {
+    return defaultText;
+  }
+}
+
+/* ── Login Screen ── */
+function LoginScreen() {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      return isSignInWithEmailLink(auth, window.location.href);
+    }
+    return false;
+  });
+  const [emailSent, setEmailSent] = useState(false);
+
+  useEffect(() => {
+    async function checkLink() {
+      await Promise.resolve(); // Yield to avoid synchronous setState warnings
+      // Check if user is returning from email link
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        let emailForSignIn = window.localStorage.getItem("emailForSignIn");
+        if (!emailForSignIn) {
+          emailForSignIn = window.prompt("Please provide your email for confirmation");
+        }
+        if (emailForSignIn) {
+          try {
+            await signInWithEmailLink(auth, emailForSignIn, window.location.href);
+            window.localStorage.removeItem("emailForSignIn");
+            // Successful login will trigger onAuthStateChanged in parent
+          } catch (err) {
+            if (err instanceof Error) {
+              setError(err.message || "Failed to sign in with email link");
+            } else {
+              setError("Failed to sign in with email link");
+            }
+            setLoading(false);
+          }
+        } else {
+          setLoading(false);
+        }
+      }
+    }
+    checkLink();
+  }, []);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const actionCodeSettings = {
+        url: window.location.origin + "/admin", // redirect back to dashboard
+        handleCodeInApp: true,
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      window.localStorage.setItem("emailForSignIn", email);
+      setEmailSent(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to send login link");
+      } else {
+        setError("Failed to send login link");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      background: T.washed, color: T.ink, fontFamily: "var(--font-sans)"
+    }}>
+      <div style={{
+        background: T.white, padding: "40px", borderRadius: "16px",
+        boxShadow: "rgba(0,0,0,0.08) 0px 4px 12px", width: "100%", maxWidth: "400px"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "24px" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "12px", background: T.violetBg, color: T.violet, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Lock size={24} />
+          </div>
+        </div>
+        <h1 style={{ fontSize: "24px", fontWeight: 700, textAlign: "center", marginBottom: "8px" }}>Admin Login</h1>
+        
+        {emailSent ? (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "14px", color: T.ghost, marginBottom: "16px" }}>
+              We sent a magic link to <strong>{email}</strong>. Check your inbox and click the link to log in.
+            </p>
+            <button
+              onClick={() => setEmailSent(false)}
+              style={{
+                background: "transparent", color: T.violet, border: `1.5px solid ${T.washed}`,
+                padding: "8px 16px", borderRadius: "6px", fontSize: "13px", fontWeight: 500, cursor: "pointer"
+              }}
+            >
+              Try another email
+            </button>
+          </div>
+        ) : (
+          <>
+            <p style={{ fontSize: "14px", color: T.ghost, textAlign: "center", marginBottom: "32px" }}>Sign in with a magic link</p>
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>Email</label>
+                <input
+                  type="email" required
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  style={{ width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${T.powder}`, background: T.porcelain, color: T.ink, fontSize: "14px" }}
+                  placeholder="admin@example.com"
+                />
+              </div>
+              {error && <div style={{ color: "#d93025", fontSize: "13px", background: "#fce8e6", padding: "10px", borderRadius: "6px" }}>{error}</div>}
+              
+              <button
+                type="submit" disabled={loading}
+                style={{
+                  background: T.violet, color: "#fff", padding: "12px", borderRadius: "8px",
+                  border: "none", fontSize: "14px", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                  marginTop: "8px"
+                }}
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : "Send Magic Link"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Types ── */
 type Tab    = "dashboard" | "orders" | "assessments" | "reports" | "settings";
 type Status = "completed" | "processing" | "paid" | "pending";
 
-/* ── Data ── */
-const ORDERS: { id: string; company: string; contact: string; email: string; status: Status; date: string; amount: number }[] = [
-  { id: "A1B2C3", company: "Acme Inc",         contact: "Sarah Kim",     email: "contact@acme.com",       status: "completed",  date: "Apr 15, 2024", amount: 997 },
-  { id: "D4E5F6", company: "Tech Startup Co",  contact: "Marcus Dela",   email: "info@techstartup.com",   status: "completed",  date: "Apr 14, 2024", amount: 997 },
-  { id: "G7H8I9", company: "Design Studios",   contact: "Priya Mehta",   email: "hello@designstudios.com",status: "processing", date: "Apr 13, 2024", amount: 997 },
-  { id: "J0K1L2", company: "Marketing Agency", contact: "Tom Nguyen",    email: "support@marketing.com",  status: "paid",       date: "Apr 12, 2024", amount: 997 },
-  { id: "M3N4O5", company: "Consulting Group", contact: "Elena Brooks",  email: "contact@consulting.com", status: "pending",    date: "Apr 11, 2024", amount: 997 },
-  { id: "P6Q7R8", company: "FinTech Labs",      contact: "James Carter",  email: "james@fintechlabs.io",   status: "completed",  date: "Apr 10, 2024", amount: 997 },
-  { id: "S9T0U1", company: "GrowthHQ",          contact: "Nadia Okafor",  email: "nadia@growthhq.co",      status: "completed",  date: "Apr 09, 2024", amount: 997 },
-];
+type Order = {
+  id: string;
+  company: string;
+  contact: string;
+  email: string;
+  status: Status;
+  date: string;
+  amount: number;
+};
 
-const ASSESSMENTS = [
-  { id: "A1B2C3", company: "Acme Inc",        contact: "Sarah Kim",    date: "Apr 15, 2024", duration: "42 min", savings: "$14,200", status: "completed" as Status },
-  { id: "D4E5F6", company: "Tech Startup Co", contact: "Marcus Dela",  date: "Apr 14, 2024", duration: "38 min", savings: "$9,800",  status: "completed" as Status },
-  { id: "G7H8I9", company: "Design Studios",  contact: "Priya Mehta",  date: "Apr 13, 2024", duration: "45 min", savings: "TBD",     status: "processing" as Status },
-  { id: "P6Q7R8", company: "FinTech Labs",     contact: "James Carter", date: "Apr 10, 2024", duration: "51 min", savings: "$22,100", status: "completed" as Status },
-  { id: "S9T0U1", company: "GrowthHQ",         contact: "Nadia Okafor", date: "Apr 09, 2024", duration: "36 min", savings: "$7,650",  status: "completed" as Status },
-];
+type Assessment = {
+  id: string;
+  company: string;
+  contact: string;
+  date: string;
+  score: number;
+  savings: string;
+  status: Status;
+};
 
-const REPORTS = [
-  { id: "A1B2C3", company: "Acme Inc",        contact: "Sarah Kim",    generated: "Apr 15, 2024", findings: 4, topSaving: "$14,200" },
-  { id: "D4E5F6", company: "Tech Startup Co", contact: "Marcus Dela",  generated: "Apr 14, 2024", findings: 5, topSaving: "$9,800"  },
-  { id: "P6Q7R8", company: "FinTech Labs",     contact: "James Carter", generated: "Apr 10, 2024", findings: 7, topSaving: "$22,100" },
-  { id: "S9T0U1", company: "GrowthHQ",         contact: "Nadia Okafor", generated: "Apr 09, 2024", findings: 3, topSaving: "$7,650"  },
-];
-
-const REVENUE_DATA = [
-  { month: "Jan", val: 2985, orders: 3 },
-  { month: "Feb", val: 3992, orders: 4 },
-  { month: "Mar", val: 5010, orders: 5 },
-  { month: "Apr", val: 4968, orders: 5 },
-  { month: "May", val: 3980, orders: 4 },
-  { month: "Jun", val: 6951, orders: 7 },
-];
+type Report = {
+  id: string;
+  fullId: string;
+  company: string;
+  contact: string;
+  generated: string;
+  findings: number;
+  topSaving: string;
+};
 
 const STATUS_MAP: Record<Status, { bg: string; color: string; dot: string; label: string }> = {
   completed:  { bg: T.greenBg,   color: "#3a6b05", dot: T.green,   label: "Completed" },
@@ -77,17 +227,9 @@ const NAV: { id: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 /* ── Toast system ── */
-type Toast = { id: number; message: string; sub: string; icon: string; color: string };
+type Toast = { id: number; message: string; sub: string; icon: React.ReactNode; color: string };
 
 let toastId = 0;
-const LIVE_EVENTS: Omit<Toast, "id">[] = [
-  { message: "New order received",     sub: "Scale Commerce — $997",            icon: "💳", color: "#533afd" },
-  { message: "Assessment completed",   sub: "FinTech Labs — $22,100 identified", icon: "✓",  color: "#81b81a" },
-  { message: "Report downloaded",      sub: "Acme Inc — Sarah Kim",             icon: "📄", color: "#50617a" },
-  { message: "Findings call booked",   sub: "Design Studios — Apr 18, 2pm",     icon: "📞", color: "#ff6118" },
-  { message: "Payment confirmed",      sub: "GrowthHQ — $997",                  icon: "💳", color: "#533afd" },
-  { message: "Assessment started",     sub: "Marketing Agency intake received",  icon: "⚡", color: "#8087ff" },
-];
 
 function useToasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -131,7 +273,14 @@ function ToastStack({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id: number
           </div>
           <button
             onClick={() => dismiss(t.id)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: T.ghost, fontSize: "16px", padding: "0 0 0 4px", lineHeight: 1, flexShrink: 0 }}
+            aria-label="Dismiss notification"
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: T.ghost, fontSize: "18px", padding: "0",
+              minWidth: "44px", minHeight: "44px", width: "44px", height: "44px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              lineHeight: 1, flexShrink: 0
+            }}
           >×</button>
         </div>
       ))}
@@ -210,7 +359,7 @@ function ActionBtn({ label, primary, onClick }: { label: string; primary?: boole
         borderRadius: "4px", padding: "5px 12px",
         fontSize: "12px", fontWeight: 400, cursor: "pointer",
         transform: pressed ? "scale(0.97)" : "scale(1)",
-        transition: "all 150ms cubic-bezier(0.23, 1, 0.32, 1)",
+        transition: "background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms cubic-bezier(0.23, 1, 0.32, 1)",
         whiteSpace: "nowrap",
       }}
     >
@@ -221,7 +370,7 @@ function ActionBtn({ label, primary, onClick }: { label: string; primary?: boole
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th style={{
+    <th scope="col" style={{
       padding: "10px 16px", textAlign: right ? "right" : "left",
       fontSize: "11px", fontWeight: 600, color: T.ghost,
       letterSpacing: "0.5px", textTransform: "uppercase",
@@ -337,8 +486,32 @@ function MetricCard({ label, value, sub, accent, delta, icon }: {
 }
 
 /* ── Bar chart ── */
-function RevenueChart() {
-  const max = Math.max(...REVENUE_DATA.map(d => d.val));
+function RevenueChart({ orders }: { orders: Order[] }) {
+  const data = React.useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    // Get last 6 months
+    const last6: { month: string; val: number; count: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      let m = now.getMonth() - i;
+      if (m < 0) m += 12;
+      last6.push({ month: months[m], val: 0, count: 0 });
+    }
+    
+    orders.forEach(o => {
+      const d = new Date(o.date);
+      if (isNaN(d.getTime())) return;
+      const mName = months[d.getMonth()];
+      const entry = last6.find(x => x.month === mName);
+      if (entry) {
+        entry.val += o.amount;
+        entry.count += 1;
+      }
+    });
+    return last6;
+  }, [orders]);
+
+  const max = Math.max(...data.map(d => d.val), 1000);
   const [hovered, setHovered] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setTimeout(() => setMounted(true), 100); }, []);
@@ -346,7 +519,7 @@ function RevenueChart() {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "120px" }}>
-        {REVENUE_DATA.map((d, i) => {
+        {data.map((d, i) => {
           const pct = (d.val / max) * 100;
           const isHov = hovered === i;
           return (
@@ -386,7 +559,7 @@ function RevenueChart() {
         })}
       </div>
       <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-        {REVENUE_DATA.map(d => (
+        {data.map(d => (
           <div key={d.month} style={{ flex: 1, textAlign: "center", fontSize: "11px", color: T.ghost }}>{d.month}</div>
         ))}
       </div>
@@ -411,34 +584,37 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-/* ── Activity feed ── */
-function ActivityItem({ icon, text, time, color }: { icon: string; text: string; time: string; color: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "10px 0", borderBottom: `1px solid ${T.powder}` }}>
-      <div style={{
-        width: "28px", height: "28px", borderRadius: "7px",
-        background: color + "20", flexShrink: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "13px",
-      }}>
-        {icon}
-      </div>
-      <div style={{ flex: 1 }}>
-        <p style={{ fontSize: "13px", color: T.ink, margin: 0, lineHeight: 1.4 }}>{text}</p>
-        <p style={{ fontSize: "11px", color: T.ghost, margin: "2px 0 0" }}>{time}</p>
-      </div>
-    </div>
-  );
-}
+
 
 /* ── New Order Modal ── */
 function NewOrderModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const handleSubmit = (e: React.FormEvent) => {
+  const [company, setCompany] = useState("");
+  const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => { setLoading(false); setDone(true); }, 1500);
+    try {
+      await addDoc(collection(db, "orders"), {
+        company,
+        contact,
+        email,
+        phone,
+        status: "pending",
+        amount: 997,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        createdAt: serverTimestamp(),
+      });
+      setDone(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div
@@ -470,7 +646,7 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
         <div style={{ padding: "22px 24px 24px" }}>
           {done ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: "36px", marginBottom: "12px" }}>✓</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px", color: T.green }}><Check size={36} strokeWidth={2} /></div>
               <p style={{ fontSize: "16px", fontWeight: 500, color: T.ink, marginBottom: "6px" }}>Order created</p>
               <p style={{ fontSize: "13px", color: T.ghost, marginBottom: "20px" }}>The client will receive a confirmation email.</p>
               <ActionBtn label="Close" onClick={onClose} />
@@ -478,17 +654,17 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
           ) : (
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               {[
-                { label: "Company name", placeholder: "Acme Corp", type: "text" },
-                { label: "Contact name", placeholder: "Alex Johnson", type: "text" },
-                { label: "Email address", placeholder: "alex@acmecorp.com", type: "email" },
-                { label: "Phone (optional)", placeholder: "+1 555 000 0000", type: "tel" },
+                { label: "Company name", placeholder: "Acme Corp", type: "text", val: company, set: setCompany, req: true },
+                { label: "Contact name", placeholder: "Alex Johnson", type: "text", val: contact, set: setContact, req: true },
+                { label: "Email address", placeholder: "alex@acmecorp.com", type: "email", val: email, set: setEmail, req: true },
+                { label: "Phone (optional)", placeholder: "+1 555 000 0000", type: "tel", val: phone, set: setPhone, req: false },
               ].map(f => (
                 <div key={f.label}>
                   <label style={{ display: "block", fontSize: "11px", fontWeight: 600, color: T.ghost, letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "6px" }}>
                     {f.label}
                   </label>
                   <input
-                    type={f.type} placeholder={f.placeholder}
+                    type={f.type} placeholder={f.placeholder} required={f.req} value={f.val} onChange={e => f.set(e.target.value)}
                     style={{
                       width: "100%", padding: "9px 12px", boxSizing: "border-box",
                       border: `1.5px solid ${T.stone}`, borderRadius: "5px",
@@ -532,7 +708,19 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
 }
 
 /* ── CSV export ── */
-function exportCSV(orders: typeof ORDERS) {
+export interface OrderRow {
+  id: string;
+  company: string;
+  contact: string;
+  email: string;
+  phone?: string;
+  status: "pending" | "processing" | "completed";
+  amount: number;
+  date: string;
+}
+
+/* ── CSV export ── */
+function exportCSV(orders: Order[]) {
   const headers = ["Order ID", "Company", "Contact", "Email", "Status", "Date", "Amount"];
   const rows = orders.map(o => [o.id, o.company, o.contact, o.email, o.status, o.date, `$${o.amount}`]);
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
@@ -544,34 +732,42 @@ function exportCSV(orders: typeof ORDERS) {
 }
 
 /* ── Order detail drawer ── */
-type OrderRow = typeof ORDERS[number];
-
-function OrderDrawer({ order, onClose }: { order: OrderRow | null; onClose: () => void }) {
+function OrderDrawer({ order, onClose, audits }: { order: Order | null; onClose: () => void; audits: AuditReport[] }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (order) { setTimeout(() => setVisible(true), 10); }
-    else { setVisible(false); }
+    let t: NodeJS.Timeout;
+    if (order) {
+      t = setTimeout(() => setVisible(true), 10);
+    } else {
+      t = setTimeout(() => setVisible(false), 0);
+    }
+    return () => clearTimeout(t);
   }, [order]);
 
   useEffect(() => {
-    if (order) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
-  }, [order]);
+    if (!order) return;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [order, onClose]);
 
   if (!order) return null;
 
-  const statusMap = STATUS_MAP[order.status];
-  const assessment = ASSESSMENTS.find(a => a.id === order.id);
-  const report = REPORTS.find(r => r.id === order.id);
+  const assessment = audits.find(a => a.orderId === order.id || a.id === order.id);
 
   const timeline: { label: string; date: string; done: boolean }[] = [
     { label: "Order received",      date: order.date,          done: true },
     { label: "Intake form sent",    date: order.date,          done: order.status !== "pending" },
-    { label: "Assessment started",  date: assessment?.date ?? "—", done: !!assessment },
-    { label: "Findings call",       date: assessment?.date ?? "—", done: order.status === "completed" },
-    { label: "Report delivered",    date: report?.generated ?? "—", done: !!report },
+    { label: "Assessment started",  date: formatDateShort(assessment?.createdAt, "—"), done: !!assessment },
+    { label: "Findings call",       date: formatDateShort(assessment?.createdAt, "—"), done: order.status === "completed" },
+    { label: "Report delivered",    date: formatDateShort(assessment?.createdAt, "—"), done: !!assessment },
   ];
 
   return (
@@ -587,24 +783,37 @@ function OrderDrawer({ order, onClose }: { order: OrderRow | null; onClose: () =
       />
 
       {/* Drawer panel */}
-      <div style={{
-        position: "relative", width: "100%", maxWidth: "480px", height: "100%",
-        background: T.white, zIndex: 1,
-        boxShadow: "-8px 0 40px rgba(0,0,0,0.12)",
-        display: "flex", flexDirection: "column",
-        transform: visible ? "translateX(0)" : "translateX(100%)",
-        transition: "transform 320ms cubic-bezier(0.23,1,0.32,1)",
-        overflowY: "auto",
-      }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`order-drawer-title-${order.id}`}
+        style={{
+          position: "relative", width: "100%", maxWidth: "480px", height: "100%",
+          background: T.white, zIndex: 1,
+          boxShadow: "-8px 0 40px rgba(0,0,0,0.12)",
+          display: "flex", flexDirection: "column",
+          transform: visible ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 320ms cubic-bezier(0.23,1,0.32,1)",
+          overflowY: "auto",
+        }}
+      >
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.powder}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: "11px", color: T.ghost, fontWeight: 600, letterSpacing: "0.5px", marginBottom: "4px" }}>ORDER #{order.id}</div>
-            <h2 style={{ fontSize: "18px", fontWeight: 500, color: T.ink, margin: 0, letterSpacing: "-0.01em" }}>{order.company}</h2>
+            <h2 id={`order-drawer-title-${order.id}`} style={{ fontSize: "18px", fontWeight: 500, color: T.ink, margin: 0, letterSpacing: "-0.01em" }}>{order.company}</h2>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <StatusBadge status={order.status} />
-            <button onClick={onClose} style={{ width: "30px", height: "30px", borderRadius: "50%", border: `1px solid ${T.powder}`, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ghost, fontSize: "16px", transition: "background 150ms ease" }}
+            <button
+              onClick={onClose}
+              aria-label="Close order details"
+              style={{
+                minWidth: "44px", minHeight: "44px", width: "44px", height: "44px",
+                borderRadius: "50%", border: `1px solid ${T.powder}`, background: "transparent",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                color: T.ghost, fontSize: "18px", transition: "background-color 150ms ease, color 150ms ease"
+              }}
               onMouseEnter={e => e.currentTarget.style.background = T.porcelain as string}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >×</button>
@@ -665,16 +874,16 @@ function OrderDrawer({ order, onClose }: { order: OrderRow | null; onClose: () =
               <div style={{ fontSize: "11px", fontWeight: 600, color: T.ghost, letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "12px" }}>Assessment</div>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
                 <div>
-                  <div style={{ fontSize: "11px", color: T.ghost, marginBottom: "2px" }}>Duration</div>
-                  <div style={{ fontSize: "15px", fontWeight: 500, color: T.ink }}>{assessment.duration}</div>
+                  <div style={{ fontSize: "11px", color: T.ghost, marginBottom: "2px" }}>Score</div>
+                  <div style={{ fontSize: "15px", fontWeight: 500, color: T.ink }}>{assessment?.overallScore ?? "—"}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "11px", color: T.ghost, marginBottom: "2px" }}>Savings found</div>
-                  <div style={{ fontSize: "15px", fontWeight: 600, color: T.green }}>{assessment.savings}</div>
+                  <div style={{ fontSize: "15px", fontWeight: 600, color: T.green }}>{assessment?.totalSavingsEstimate || "TBD"}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "11px", color: T.ghost, marginBottom: "2px" }}>Findings</div>
-                  <div style={{ fontSize: "15px", fontWeight: 500, color: T.ink }}>{report?.findings ?? "—"}</div>
+                  <div style={{ fontSize: "15px", fontWeight: 500, color: T.ink }}>{assessment?.issues?.length ?? "—"}</div>
                 </div>
               </div>
             </Card>
@@ -683,7 +892,7 @@ function OrderDrawer({ order, onClose }: { order: OrderRow | null; onClose: () =
           {/* Actions */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div style={{ fontSize: "11px", fontWeight: 600, color: T.ghost, letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "4px" }}>Actions</div>
-            {order.status === "completed" && report && (
+            {order.status === "completed" && assessment && (
               <button style={{ width: "100%", padding: "10px", background: T.violet, color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 500, cursor: "pointer", transition: "background 150ms ease" }}
                 onMouseEnter={e => e.currentTarget.style.background = T.soft as string}
                 onMouseLeave={e => e.currentTarget.style.background = T.violet as string}
@@ -713,37 +922,142 @@ function OrderDrawer({ order, onClose }: { order: OrderRow | null; onClose: () =
    MAIN
 ══════════════════════════════════════════════ */
 export default function AdminDashboard() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [tab, setTab] = useState<Tab>("dashboard");
   const [modalOpen, setModalOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [contentKey, setContentKey] = useState(0);
-  const [selectedOrder, setSelectedOrder] = useState<typeof ORDERS[number] | null>(null);
+  const [ordersList, setOrdersList] = useState<Order[]>([]);
+  const [auditsList, setAuditsList] = useState<AuditReport[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [auditReport, setAuditReport] = useState<AuditReport | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<AuditIssue | null>(null);
+  const [issueDrawerOpen, setIssueDrawerOpen] = useState(false);
   const { dark, toggle: toggleDark } = useDarkMode();
   const { toasts, push, dismiss } = useToasts();
-  const eventIdx = useRef(0);
 
-  // Simulate live events every 12s
   useEffect(() => {
-    const t = setInterval(() => {
-      push(LIVE_EVENTS[eventIdx.current % LIVE_EVENTS.length]);
-      eventIdx.current++;
-    }, 12000);
-    // Fire first one after 3s so it's noticeable on load
-    const first = setTimeout(() => push(LIVE_EVENTS[0]), 3000);
-    return () => { clearInterval(t); clearTimeout(first); };
-  }, [push]);
+    const unsub = onAuthStateChanged(auth, u => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  // Live Firestore subscription for real orders
+  useEffect(() => {
+    if (!user) return; // Only fetch if logged in
+    try {
+      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+      const unsubscribeOrders = onSnapshot(q, snapshot => {
+        const liveOrders = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id.slice(0, 6).toUpperCase(),
+            company: data.company || "Unknown Company",
+            contact: data.contact || "Customer",
+            email: data.email || "",
+            status: (data.status as Status) || "paid",
+            date: formatDateShort(data.createdAt),
+            amount: data.amount || 997,
+          };
+        });
+        setOrdersList(liveOrders);
+      }, err => {
+        console.warn("Firestore live query fallback to initial orders:", err);
+      });
+
+      const auditsQ = query(collection(db, "audits"), orderBy("createdAt", "desc"));
+      const unsubscribeAudits = onSnapshot(auditsQ, snapshot => {
+        const rawAudits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditReport));
+        setAuditsList(rawAudits);
+      }, err => {
+        console.warn("Firestore live query fallback to initial audits:", err);
+      });
+
+      return () => {
+        unsubscribeOrders();
+        unsubscribeAudits();
+      };
+    } catch {
+      // Fallback
+    }
+  }, [user]);
 
   function switchTab(t: Tab) {
     setTab(t);
     setContentKey(k => k + 1);
   }
 
-  const filteredOrders = ORDERS.filter(o =>
+  const sparklineData = React.useMemo(() => {
+    const now = new Date();
+    const last6 = Array(6).fill(0);
+    ordersList.forEach(o => {
+      const d = new Date(o.date);
+      if (isNaN(d.getTime())) return;
+      const monthDiff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+      if (monthDiff >= 0 && monthDiff < 6) {
+        last6[5 - monthDiff] += o.amount;
+      }
+    });
+    return last6;
+  }, [ordersList]);
+
+  // Derive display lists from raw audits + orders
+  const assessmentsList = React.useMemo<Assessment[]>(() => {
+    return auditsList.map(audit => {
+      const order = ordersList.find(o => o.id === audit.orderId);
+      const company = audit.company && audit.company !== "Unknown Company" ? audit.company : (order?.company || "Unknown Company");
+      const contact = audit.contact && audit.contact !== "Customer" ? audit.contact : (order?.contact || "Customer");
+      return {
+        id: audit.id?.slice(0, 6).toUpperCase() || "",
+        company,
+        contact,
+        date: formatDateShort(audit.createdAt),
+        score: audit.overallScore || 0,
+        savings: audit.totalSavingsEstimate || "TBD",
+        status: "completed" as Status,
+      };
+    });
+  }, [auditsList, ordersList]);
+
+  const reportsList = React.useMemo<Report[]>(() => {
+    return auditsList.map(audit => {
+      const order = ordersList.find(o => o.id === audit.orderId);
+      const company = audit.company && audit.company !== "Unknown Company" ? audit.company : (order?.company || "Unknown Company");
+      const contact = audit.contact && audit.contact !== "Customer" ? audit.contact : (order?.contact || "Customer");
+      return {
+        id: audit.id?.slice(0, 6).toUpperCase() || "",
+        fullId: audit.id || "",
+        company,
+        contact,
+        generated: formatDateShort(audit.createdAt),
+        findings: audit.issues ? audit.issues.length : 0,
+        topSaving: audit.totalSavingsEstimate || "TBD",
+      };
+    });
+  }, [auditsList, ordersList]);
+
+  if (authLoading) return <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.washed }}><Loader2 className="animate-spin" color={T.violet} /></div>;
+  if (!user) return <LoginScreen />;
+
+  const filteredOrders = ordersList.filter(o =>
     o.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
     o.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     o.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalOrders = ordersList.length;
+  const completedOrders = ordersList.filter(o => o.status === "completed").length;
+  const processingOrders = ordersList.filter(o => o.status === "processing").length;
+  const pendingOrders = ordersList.filter(o => o.status === "pending").length;
+  const totalRevenue = ordersList.reduce((sum, o) => sum + o.amount, 0);
+  const completionRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+
+  const formatCurrency = (val: number) => "$" + val.toLocaleString("en-US");
 
   return (
     <>
@@ -810,6 +1124,7 @@ export default function AdminDashboard() {
                   key={item.id}
                   onClick={() => switchTab(item.id)}
                   title={sidebarCollapsed ? item.label : undefined}
+                  aria-current={active ? "page" : undefined}
                   style={{
                     display: "flex", alignItems: "center",
                     gap: "9px",
@@ -911,9 +1226,9 @@ export default function AdminDashboard() {
               </h1>
               <p style={{ fontSize: "11px", color: T.ghost, margin: 0 }}>
                 {tab === "dashboard" && "Overview & key metrics"}
-                {tab === "orders" && `${ORDERS.length} total orders`}
-                {tab === "assessments" && `${ASSESSMENTS.length} assessments`}
-                {tab === "reports" && `${REPORTS.length} reports generated`}
+                {tab === "orders" && `${ordersList.length} total orders`}
+                {tab === "assessments" && `${assessmentsList.length} assessments`}
+                {tab === "reports" && `${reportsList.length} reports generated`}
                 {tab === "settings" && "Account & integrations"}
               </p>
             </div>
@@ -949,7 +1264,6 @@ export default function AdminDashboard() {
 
               {/* Notification bell */}
               <button
-                onClick={() => { push(LIVE_EVENTS[eventIdx.current % LIVE_EVENTS.length]); eventIdx.current++; }}
                 style={{
                   width: "32px", height: "32px", borderRadius: "6px",
                   border: "none", background: "transparent",
@@ -995,7 +1309,7 @@ export default function AdminDashboard() {
               <div style={{ width: "1px", height: "20px", background: T.powder, margin: "0 2px" }} />
 
               {/* View site — DESIGN.md outlined button */}
-              <a href="/" style={{
+              <Link href="/" style={{
                 display: "flex", alignItems: "center", gap: "6px",
                 fontSize: "13px", fontWeight: 400, color: T.violet,
                 textDecoration: "none",
@@ -1012,7 +1326,7 @@ export default function AdminDashboard() {
                   <path d="M1.5 5.5h8M6 2l3.5 3.5L6 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 View site
-              </a>
+              </Link>
             </div>
           </header>
 
@@ -1027,63 +1341,58 @@ export default function AdminDashboard() {
 
             {/* ── DASHBOARD ── */}
             {tab === "dashboard" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
-                {/* Metrics grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "12px" }}>
-                  <MetricCard
-                    label="Total Revenue" value="$14,955"
-                    sub="15 assessments"
-                    accent
-                    delta={{ val: "24%", positive: true }}
-                    icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M10 4.5C10 3.12 8.66 2 7 2S4 3.12 4 4.5 5.34 7 7 7s3 1.12 3 2.5S8.66 12 7 12s-3-1.12-3-2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>}
-                  />
-                  <MetricCard
-                    label="Total Orders" value="18"
-                    sub="3 pending completion"
-                    delta={{ val: "2 this week", positive: true }}
-                    icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3h10M2 7h10M2 11h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>}
-                  />
-                  <MetricCard
-                    label="Completion Rate" value="83%"
-                    sub="15 of 18 completed"
-                    delta={{ val: "5%", positive: true }}
-                    icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4" /><path d="M4.5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  />
-                  <MetricCard
-                    label="Avg. Savings Found" value="$10,400"
-                    sub="per completed audit"
-                    delta={{ val: "$1,200", positive: true }}
-                    icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-4 3 2 4-6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  />
-                </div>
+              {/* Metrics grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "12px" }}>
+                <MetricCard
+                  label="Total Revenue" value={formatCurrency(totalRevenue)}
+                  sub={`${assessmentsList.length} assessments`}
+                  accent
+                  delta={{ val: "24%", positive: true }}
+                  icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M10 4.5C10 3.12 8.66 2 7 2S4 3.12 4 4.5 5.34 7 7 7s3 1.12 3 2.5S8.66 12 7 12s-3-1.12-3-2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>}
+                />
+                <MetricCard
+                  label="Total Orders" value={totalOrders.toString()}
+                  sub={`${pendingOrders} pending completion`}
+                  delta={{ val: "2 this week", positive: true }}
+                  icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3h11M2 7.5h11M2 12h7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>}
+                />
+                <MetricCard
+                  label="Completion Rate" value={`${completionRate}%`}
+                  sub={`${completedOrders} of ${totalOrders} completed`}
+                  delta={{ val: "5%", positive: true }}
+                  icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4" /><path d="M4.5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                />
 
-                {/* Charts row */}
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
+              </div>
 
-                  {/* Revenue chart */}
-                  <Card style={{ padding: "22px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                      <div>
-                        <h2 style={{ fontSize: "15px", fontWeight: 500, color: T.ink, margin: 0, letterSpacing: "-0.01em" }}>Revenue trend</h2>
-                        <p style={{ fontSize: "12px", color: T.ghost, margin: "2px 0 0" }}>Last 6 months</p>
-                      </div>
-                      <div style={{ fontSize: "12px", color: T.ghost, background: T.porcelain, borderRadius: "5px", padding: "4px 10px" }}>
-                        Monthly
-                      </div>
+              {/* Charts row */}
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
+
+                {/* Revenue chart */}
+                <Card style={{ padding: "22px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                    <div>
+                      <h2 style={{ fontSize: "15px", fontWeight: 500, color: T.ink, margin: 0, letterSpacing: "-0.01em" }}>Revenue trend</h2>
+                      <p style={{ fontSize: "12px", color: T.ghost, margin: "2px 0 0" }}>Last 6 months</p>
                     </div>
-                    <RevenueChart />
-                  </Card>
+                    <div style={{ fontSize: "12px", color: T.ghost, background: T.porcelain, borderRadius: "5px", padding: "4px 10px" }}>
+                      Monthly
+                    </div>
+                  </div>
+                  <RevenueChart orders={ordersList} />
+                </Card>
 
-                  {/* Status distribution */}
-                  <Card style={{ padding: "22px" }}>
-                    <h2 style={{ fontSize: "15px", fontWeight: 500, color: T.ink, margin: "0 0 18px", letterSpacing: "-0.01em" }}>Order status</h2>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {[
-                        { label: "Completed",  value: 15, total: 18, color: T.green },
-                        { label: "Processing", value: 2,  total: 18, color: T.violet },
-                        { label: "Pending",    value: 1,  total: 18, color: T.orange },
-                      ].map(s => (
+                {/* Status distribution */}
+                <Card style={{ padding: "22px" }}>
+                  <h2 style={{ fontSize: "15px", fontWeight: 500, color: T.ink, margin: "0 0 18px", letterSpacing: "-0.01em" }}>Order status</h2>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {[
+                      { label: "Completed",  value: completedOrders, total: Math.max(totalOrders, 1), color: T.green },
+                      { label: "Processing", value: processingOrders, total: Math.max(totalOrders, 1), color: T.violet },
+                      { label: "Pending",    value: pendingOrders, total: Math.max(totalOrders, 1), color: T.orange },
+                    ].map(s => (
                         <div key={s.label}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
                             <span style={{ fontSize: "12px", color: T.slate }}>{s.label}</span>
@@ -1103,30 +1412,13 @@ export default function AdminDashboard() {
 
                     <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${T.powder}` }}>
                       <h3 style={{ fontSize: "12px", fontWeight: 600, color: T.ghost, letterSpacing: "0.4px", textTransform: "uppercase", margin: "0 0 12px" }}>Monthly trend</h3>
-                      <Sparkline data={[2985, 3992, 5010, 4968, 3980, 6951]} color={T.violet} />
+                      <Sparkline data={sparklineData} color={T.violet} />
                     </div>
                   </Card>
                 </div>
 
-                {/* Recent activity + recent orders */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: "12px" }}>
-
-                  {/* Activity feed */}
-                  <Card style={{ padding: "22px" }}>
-                    <h2 style={{ fontSize: "15px", fontWeight: 500, color: T.ink, margin: "0 0 4px", letterSpacing: "-0.01em" }}>Recent activity</h2>
-                    <p style={{ fontSize: "12px", color: T.ghost, margin: "0 0 12px" }}>Last 24 hours</p>
-                    <div>
-                      {[
-                        { icon: "✓", text: "Assessment completed for Acme Inc — $14,200 in savings identified", time: "2 hours ago", color: T.green },
-                        { icon: "💳", text: "New order received from GrowthHQ — $997", time: "5 hours ago", color: T.violet },
-                        { icon: "📋", text: "Report generated for Tech Startup Co", time: "Yesterday", color: T.slate },
-                        { icon: "📞", text: "Findings call scheduled with Design Studios", time: "Yesterday", color: T.orange },
-                        { icon: "⚡", text: "FinTech Labs assessment started", time: "2 days ago", color: T.soft },
-                      ].map((a, i) => <ActivityItem key={i} {...a} />)}
-                    </div>
-                  </Card>
-
-                  {/* Recent orders preview */}
+                {/* Recent orders preview */}
+                <div style={{ marginTop: "12px" }}>
                   <Card style={{ padding: "22px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                       <h2 style={{ fontSize: "15px", fontWeight: 500, color: T.ink, margin: 0, letterSpacing: "-0.01em" }}>Recent orders</h2>
@@ -1146,7 +1438,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {ORDERS.slice(0, 5).map(o => (
+                        {ordersList.slice(0, 5).map(o => (
                           <tr key={o.id}
                             style={{ transition: "background 120ms ease", cursor: "default" }}
                             onMouseEnter={e => (e.currentTarget.style.background = T.porcelain)}
@@ -1174,7 +1466,7 @@ export default function AdminDashboard() {
               <div>
                 <SectionHeader
                   title="All orders"
-                  sub={`${filteredOrders.length} of ${ORDERS.length} orders`}
+                  sub={`${filteredOrders.length} of ${ordersList.length} orders`}
                   action={
                     <div style={{ display: "flex", gap: "8px" }}>
                     <button
@@ -1276,65 +1568,165 @@ export default function AdminDashboard() {
 
             {/* ── ASSESSMENTS ── */}
             {tab === "assessments" && (
-              <div>
-                <SectionHeader title="Assessments" sub="All completed and in-progress assessment sessions" />
-                <Card>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "650px" }}>
-                      <thead>
-                        <tr>
-                          <Th>Order</Th>
-                          <Th>Company</Th>
-                          <Th>Contact</Th>
-                          <Th>Call date</Th>
-                          <Th>Duration</Th>
-                          <Th right>Savings found</Th>
-                          <Th>Status</Th>
-                          <Th>Actions</Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ASSESSMENTS.map((a, i) => (
-                          <tr
-                            key={a.id}
-                            style={{
-                              transition: "background 120ms ease",
-                              animation: `fadeUp 0.3s cubic-bezier(0.23, 1, 0.32, 1) ${i * 40}ms both`,
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = T.porcelain}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          >
-                            <Td mono><span style={{ color: T.ghost }}>#{a.id}</span></Td>
-                            <Td><span style={{ fontWeight: 500 }}>{a.company}</span></Td>
-                            <Td><span style={{ color: T.slate }}>{a.contact}</span></Td>
-                            <Td><span style={{ color: T.ghost }}>{a.date}</span></Td>
-                            <Td><span style={{ color: T.ghost }}>{a.duration}</span></Td>
-                            <Td right>
-                              <span style={{
-                                fontWeight: 600,
-                                color: a.savings === "TBD" ? T.ghost : T.green,
-                                fontVariantNumeric: "tabular-nums",
-                              }}>
-                                {a.savings}
-                              </span>
-                            </Td>
-                            <Td><StatusBadge status={a.status} /></Td>
-                            <Td><ActionBtn label="View transcript" /></Td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                <SectionHeader title="Run UX Audit" sub="Enter a URL to run a real AI-powered audit" />
+
+                {/* Audit runner + results split */}
+                <div style={{ display: "grid", gridTemplateColumns: auditReport ? "340px 1fr" : "340px", gap: "20px", alignItems: "start" }}>
+                  {/* Left: runner form */}
+                  <div style={{ minWidth: 0 }}>
+                    <AuditRunner
+                      ordersList={ordersList}
+                      onAuditComplete={(url, report) => {
+                        setAuditReport(report);
+                        push({ message: "Audit complete", sub: `${url} — ${report.issues.length} findings`, icon: <Check size={14} />, color: "#81b81a" });
+                      }}
+                    />
                   </div>
-                </Card>
+
+                  {/* Right: results (shown after audit) */}
+                  {auditReport && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", animation: "fadeUp 0.4s cubic-bezier(0.23,1,0.32,1) both", minWidth: 0 }}>
+                      {/* Score + category grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "16px", alignItems: "stretch" }}>
+                        <div style={{ width: "220px" }}>
+                          <AuraScore score={auditReport.overallScore} />
+                        </div>
+                        <BentoGrid scores={auditReport.categoryScores} />
+                      </div>
+
+                      {/* Summary */}
+                      <Card style={{ padding: "18px 22px" }}>
+                        <p style={{ fontSize: "11px", fontWeight: 700, color: T.ghost, letterSpacing: "0.4px", marginBottom: "8px" }}>SUMMARY</p>
+                        <p style={{ fontSize: "14px", color: T.slate, lineHeight: 1.65, margin: 0 }}>{auditReport.summary}</p>
+                      </Card>
+
+                      {/* Issues list */}
+                      <Card style={{ padding: 0, overflow: "hidden" }}>
+                        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.powder}` }}>
+                          <p style={{ fontSize: "11px", fontWeight: 700, color: T.ghost, letterSpacing: "0.4px", margin: 0 }}>
+                            FINDINGS — {auditReport.issues.length} ISSUES
+                          </p>
+                        </div>
+                        {auditReport.issues.map((issue, i) => {
+                          const SEV_DOT: Record<string, string> = {
+                            critical: "#e16540", warning: "#d97706", optimized: "#47d096", info: "#50617a",
+                          };
+                          const SEV_BG: Record<string, string> = {
+                            critical: "#ffd7f0", warning: "#fef3c7", optimized: "#b7efb230", info: "#e2ddfd",
+                          };
+                          return (
+                            <div
+                              key={issue.id}
+                              onClick={() => { setSelectedIssue(issue); setIssueDrawerOpen(true); }}
+                              style={{
+                                padding: "14px 20px",
+                                borderBottom: i < auditReport.issues.length - 1 ? `1px solid ${T.powder}` : "none",
+                                display: "flex", alignItems: "center", gap: "12px",
+                                cursor: "pointer", transition: "background 120ms ease",
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.background = T.porcelain)}
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                            >
+                              <span style={{
+                                padding: "2px 8px", borderRadius: "100px", fontSize: "10px", fontWeight: 700,
+                                background: SEV_BG[issue.severity] ?? T.powder, color: T.ink,
+                                display: "flex", alignItems: "center", gap: "4px", flexShrink: 0, whiteSpace: "nowrap",
+                              }}>
+                                <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: SEV_DOT[issue.severity] ?? T.ghost }} />
+                                {issue.severity.toUpperCase()}
+                              </span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: "13px", fontWeight: 500, color: T.ink, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{issue.title}</p>
+                                <p style={{ fontSize: "11px", color: T.ghost, margin: "1px 0 0" }}>{issue.category}</p>
+                              </div>
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                                <path d="M5 2.5l4.5 4.5L5 11.5" stroke={T.stone} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </div>
+                          );
+                        })}
+                      </Card>
+
+                      {/* Reset button */}
+                      <button
+                        onClick={() => setAuditReport(null)}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: T.ghost, textAlign: "left", padding: 0 }}
+                      >
+                        ← Run another audit
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Past assessments table */}
+                <div>
+                  <SectionHeader title="Past assessments" sub="All completed and in-progress assessment sessions" />
+                  <Card>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "650px" }}>
+                        <thead>
+                          <tr>
+                            <Th>Order</Th>
+                            <Th>Company</Th>
+                            <Th>Contact</Th>
+                            <Th>Date</Th>
+                            <Th>Score</Th>
+                            <Th right>Savings found</Th>
+                            <Th>Status</Th>
+                            <Th>Actions</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {assessmentsList.map((a, i) => (
+                            <tr
+                              key={a.id}
+                              style={{
+                                transition: "background 120ms ease",
+                                animation: `fadeUp 0.3s cubic-bezier(0.23, 1, 0.32, 1) ${i * 40}ms both`,
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = T.porcelain}
+                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                            >
+                              <Td mono><span style={{ color: T.ghost }}>#{a.id}</span></Td>
+                              <Td><span style={{ fontWeight: 500 }}>{a.company}</span></Td>
+                              <Td><span style={{ color: T.slate }}>{a.contact}</span></Td>
+                              <Td><span style={{ color: T.ghost }}>{a.date}</span></Td>
+                              <Td><span style={{ color: T.ink, fontWeight: 500 }}>{a.score}/100</span></Td>
+                              <Td right>
+                                <span style={{
+                                  fontWeight: 600,
+                                  color: a.savings === "TBD" ? T.ghost : T.green,
+                                  fontVariantNumeric: "tabular-nums",
+                                }}>
+                                  {a.savings}
+                                </span>
+                              </Td>
+                              <Td><StatusBadge status={a.status} /></Td>
+                              <Td><ActionBtn label="View transcript" /></Td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Issue detail drawer */}
+                <IssueDrawer
+                  issue={selectedIssue}
+                  isOpen={issueDrawerOpen}
+                  onClose={() => setIssueDrawerOpen(false)}
+                />
               </div>
             )}
 
             {/* ── REPORTS ── */}
             {tab === "reports" && (
               <div>
-                <SectionHeader title="Generated reports" sub={`${REPORTS.length} reports delivered`} />
+                <SectionHeader title="Generated reports" sub={`${reportsList.length} reports delivered`} />
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {REPORTS.map((r, i) => (
+                  {reportsList.map((r, i) => (
                     <Card
                       key={r.id}
                       style={{
@@ -1374,12 +1766,12 @@ export default function AdminDashboard() {
                           <p style={{ fontSize: "18px", fontWeight: 300, color: T.ink, margin: 0, letterSpacing: "-0.02em" }}>{r.findings}</p>
                         </div>
                         <div style={{ textAlign: "center" }}>
-                          <p style={{ fontSize: "11px", color: T.ghost, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.4px" }}>Top saving</p>
+                          <p style={{ fontSize: "11px", color: T.ghost, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.4px" }}>Est. Savings</p>
                           <p style={{ fontSize: "18px", fontWeight: 300, color: T.green, margin: 0, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{r.topSaving}</p>
                         </div>
                         <div style={{ display: "flex", gap: "8px" }}>
-                          <ActionBtn label="Download PDF" />
-                          <ActionBtn label="View" primary />
+                          <ActionBtn label="Download PDF" onClick={() => window.open(`/report/${r.fullId}?print=true`, "_blank")} />
+                          <ActionBtn label="View" primary onClick={() => window.open(`/report/${r.fullId}`, "_blank")} />
                         </div>
                       </div>
                     </Card>
@@ -1491,7 +1883,7 @@ export default function AdminDashboard() {
       {modalOpen && <NewOrderModal onClose={() => setModalOpen(false)} />}
 
       {/* ── Order detail drawer ── */}
-      <OrderDrawer order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      <OrderDrawer order={selectedOrder} onClose={() => setSelectedOrder(null)} audits={auditsList} />
 
       {/* ── Toast stack ── */}
       <ToastStack toasts={toasts} dismiss={dismiss} />

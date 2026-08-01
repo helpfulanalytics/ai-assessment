@@ -2,15 +2,16 @@
 import { useEffect, useState } from "react";
 
 export function useDarkMode() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
     const stored = localStorage.getItem("auditai-theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = stored ? stored === "dark" : prefersDark;
-    setDark(initial);
-    document.documentElement.classList.toggle("dark", initial);
-  }, []);
+    return stored ? stored === "dark" : prefersDark;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
 
   const toggle = () => {
     setDark(d => {

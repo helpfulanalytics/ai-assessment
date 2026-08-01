@@ -38,8 +38,11 @@ export default function PageTransition({ children }: { children: React.ReactNode
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [pathname, children]);
 
-  // On first render just show children
-  useEffect(() => { setDisplayed(children); }, [children]);
+  const [prevChildren, setPrevChildren] = useState(children);
+  if (children !== prevChildren) {
+    setPrevChildren(children);
+    setDisplayed(children);
+  }
 
   return (
     <>
@@ -63,9 +66,9 @@ export default function PageTransition({ children }: { children: React.ReactNode
 
       <div style={{
         opacity: animating ? 0 : 1,
-        transform: animating ? "translateY(6px)" : "translateY(0)",
+        transform: animating ? "translateY(6px)" : "none",
         transition: "opacity 180ms ease, transform 180ms cubic-bezier(0.23, 1, 0.32, 1)",
-        willChange: "opacity, transform",
+        willChange: animating ? "opacity, transform" : "auto",
       }}>
         {displayed}
       </div>

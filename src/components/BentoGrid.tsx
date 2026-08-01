@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, Eye, Compass, FileText } from "lucide-react";
+import { Zap, Eye, Compass, FileText, TrendingUp, Search } from "lucide-react";
 
 interface BentoGridProps {
   scores: {
@@ -9,109 +9,140 @@ interface BentoGridProps {
     Accessibility: number;
     Heuristics: number;
     Copy: number;
+    Conversion?: number;
+    SEO?: number;
   };
 }
 
 const cards = [
   {
-    id: "performance",
-    title: "Performance",
     key: "Performance" as const,
+    title: "Performance",
     icon: Zap,
     desc: "Resource loads & paint execution",
     accent: "#fbc768",
     accentBg: "#fbc76820",
   },
   {
-    id: "accessibility",
-    title: "Accessibility",
     key: "Accessibility" as const,
+    title: "Accessibility",
     icon: Eye,
     desc: "Contrast, ARIA, visual legibility",
     accent: "#e16540",
     accentBg: "#e1654018",
   },
   {
-    id: "heuristics",
-    title: "UX Heuristics",
     key: "Heuristics" as const,
+    title: "UX Heuristics",
     icon: Compass,
     desc: "Usability laws & touch sizing",
     accent: "#328efa",
     accentBg: "#328efa18",
   },
   {
-    id: "copy",
-    title: "UX Copy",
     key: "Copy" as const,
+    title: "UX Copy",
     icon: FileText,
     desc: "Clarity, alignment, microcopy",
     accent: "#47d096",
     accentBg: "#47d09618",
   },
+  {
+    key: "Conversion" as const,
+    title: "Conversion",
+    icon: TrendingUp,
+    desc: "CTAs, friction & funnel leaks",
+    accent: "#a855f7",
+    accentBg: "#a855f718",
+  },
+  {
+    key: "SEO" as const,
+    title: "SEO",
+    icon: Search,
+    desc: "Indexability & meta structure",
+    accent: "#14b8a6",
+    accentBg: "#14b8a618",
+  },
 ];
+
+const RING_RADIUS = 18;
+const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+
+function MiniRing({ score, color }: { score: number; color: string }) {
+  const offset = RING_CIRC - (score / 100) * RING_CIRC;
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 44, height: 44, flexShrink: 0 }}>
+      <svg width="44" height="44" className="-rotate-90" aria-hidden="true">
+        <circle cx="22" cy="22" r={RING_RADIUS} stroke="var(--c-powder)" strokeWidth="4" fill="transparent" />
+        <circle
+          cx="22" cy="22" r={RING_RADIUS}
+          stroke={color} strokeWidth="4" fill="transparent"
+          strokeDasharray={RING_CIRC}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 1s ease-out" }}
+        />
+      </svg>
+      <span
+        className="absolute font-bold tabular-nums"
+        style={{ fontSize: "12px", color: "var(--c-ink)" }}
+      >
+        {score}
+      </span>
+    </div>
+  );
+}
 
 export default function BentoGrid({ scores }: BentoGridProps) {
   const getScoreLabel = (val: number) => {
     if (val >= 90) return "Excellent";
     if (val >= 70) return "Good";
+    if (val >= 50) return "Fair";
     return "Needs Work";
   };
 
+  const visibleCards = cards.filter(c => scores[c.key] !== undefined);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
-      {cards.map((card) => {
+    <div
+      className="grid gap-2.5"
+      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+    >
+      {visibleCards.map((card) => {
         const Icon = card.icon;
-        const score = scores[card.key];
+        const score = scores[card.key] ?? 0;
         return (
           <div
-            key={card.id}
-            className="card-elevated p-5 flex flex-col justify-between"
-            style={{ borderLeft: `3px solid ${card.accent}` }}
+            key={card.key}
+            className="flex items-center gap-3 rounded-2xl transition-shadow"
+            style={{
+              padding: "12px 14px",
+              background: "var(--c-white)",
+              border: "1px solid var(--c-powder)",
+            }}
           >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span style={{ fontSize: "12px", letterSpacing: "0.3px", color: "#6d6c6b", fontWeight: 500 }}>
+            <MiniRing score={score} color={card.accent} />
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="p-1 rounded-md" style={{ background: card.accentBg, flexShrink: 0 }}>
+                  <Icon size={11} style={{ color: card.accent }} />
+                </div>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--c-ink)", letterSpacing: "-0.01em" }}>
                   {card.title}
                 </span>
-                <div
-                  className="p-1.5 rounded-xl"
-                  style={{ background: card.accentBg }}
-                >
-                  <Icon size={16} style={{ color: card.accent }} />
-                </div>
-              </div>
-
-              <div className="flex items-baseline gap-1 mb-3">
                 <span
-                  className="font-black tabular-nums"
-                  style={{ fontSize: "36px", lineHeight: 1.1, letterSpacing: "-1.32px", color: "#111111" }}
+                  style={{
+                    fontSize: "10px", fontWeight: 600, color: card.accent,
+                    background: card.accentBg, borderRadius: "100px", padding: "1px 7px", marginLeft: "auto",
+                  }}
                 >
-                  {score}
-                </span>
-                <span style={{ fontSize: "12px", color: "#6d6c6b" }}>/100</span>
-              </div>
-            </div>
-
-            <div>
-              <div
-                className="w-full h-1.5 rounded-full overflow-hidden mb-3"
-                style={{ background: "rgba(17,17,17,0.06)" }}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${score}%`, background: card.accent }}
-                />
-              </div>
-
-              <div>
-                <span style={{ fontSize: "12px", fontWeight: 500, color: "#111111" }}>
                   {getScoreLabel(score)}
                 </span>
-                <span style={{ fontSize: "11px", color: "#6d6c6b", marginLeft: "6px" }}>
-                  · {card.desc}
-                </span>
               </div>
+              <p style={{ fontSize: "11px", color: "var(--c-slate)", margin: 0, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {card.desc}
+              </p>
             </div>
           </div>
         );

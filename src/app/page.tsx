@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { Settings, BarChart2, RefreshCw, Users, Bot, Map } from "lucide-react";
 
 /* ── Design tokens (CSS custom properties — swapped by dark mode) ── */
 const T = {
@@ -213,7 +214,7 @@ function OutlineButton({ children, onClick, style }: { children: React.ReactNode
 }
 
 /* ── Value card ── */
-function ValueCard({ icon, title, body, delay }: { icon: string; title: string; body: string; delay: number }) {
+function ValueCard({ icon, title, body, delay }: { icon: React.ReactNode; title: string; body: string; delay: number }) {
   const [hovered, setHovered] = useState(false);
   return (
     <Reveal delay={delay}>
@@ -233,7 +234,11 @@ function ValueCard({ icon, title, body, delay }: { icon: string; title: string; 
           cursor: "default",
         }}
       >
-        <div style={{ fontSize: "26px", marginBottom: "14px", lineHeight: 1 }}>{icon}</div>
+        <div style={{
+          width: "40px", height: "40px", borderRadius: "8px",
+          background: T.violetBg, display: "flex", alignItems: "center", justifyContent: "center",
+          marginBottom: "16px", color: T.violet,
+        }}>{icon}</div>
         <h3 style={{ fontSize: "16px", fontWeight: 600, color: T.ink, marginBottom: "10px", letterSpacing: "-0.01em" }}>
           {title}
         </h3>
@@ -303,6 +308,7 @@ function FAQItem({ q, a, delay }: { q: string; a: string; delay: number }) {
       >
         <button
           onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
           style={{
             width: "100%", textAlign: "left", background: "none", border: "none",
             cursor: "pointer", padding: "20px 0",
@@ -336,27 +342,33 @@ function FAQItem({ q, a, delay }: { q: string; a: string; delay: number }) {
   );
 }
 
-/* ── Metric badge ── */
-function MetricBadge({ value, label }: { value: string; label: string }) {
-  return (
-    <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: "36px", fontWeight: 300, color: T.violet, letterSpacing: "-0.03em", lineHeight: 1 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: "13px", color: T.slate, marginTop: "6px", letterSpacing: "0.01em" }}>{label}</div>
-    </div>
-  );
-}
 
 /* ── Payment Modal ── */
 function PaymentModal({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"qualify" | "form" | "success">("qualify");
   const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => { setLoading(false); setStep("success"); }, 1800);
+    setCheckoutError(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, company }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      setLoading(false);
+      setCheckoutError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
   };
 
   return createPortal(
@@ -370,7 +382,7 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
           position: "fixed", top: "50%", left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 9001,
-          background: "#ffffff",
+          background: T.white,
           borderRadius: "10px",
           width: "calc(100% - 32px)", maxWidth: "480px",
           maxHeight: "calc(100dvh - 40px)",
@@ -394,9 +406,10 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
               background: T.powder, border: "none", borderRadius: "50%",
-              width: "32px", height: "32px", cursor: "pointer",
+              width: "44px", height: "44px", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "16px", color: T.slate,
               transition: "background 160ms ease",
@@ -431,7 +444,13 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
             </div>
           ) : step === "success" ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>✓</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+                <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 12l5 5L20 7" stroke="var(--c-green)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
               <div style={{ fontSize: "20px", fontWeight: 500, color: T.ink, marginBottom: "8px" }}>
                 Order confirmed
               </div>
@@ -453,9 +472,9 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
               {[
-                { label: "Full name", placeholder: "Alex Johnson", type: "text" },
-                { label: "Work email", placeholder: "alex@company.com", type: "email" },
-                { label: "Company name", placeholder: "Acme Corp", type: "text" },
+                { label: "Full name",    placeholder: "Alex Johnson",      type: "text",  value: name,    onChange: (v: string) => setName(v) },
+                { label: "Work email",   placeholder: "alex@company.com",  type: "email", value: email,   onChange: (v: string) => setEmail(v) },
+                { label: "Company name", placeholder: "Acme Corp",         type: "text",  value: company, onChange: (v: string) => setCompany(v) },
               ].map(field => (
                 <div key={field.label} style={{ marginBottom: "14px" }}>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: T.ghost, marginBottom: "6px", letterSpacing: "0.3px" }}>
@@ -464,12 +483,14 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
                   <input
                     type={field.type}
                     placeholder={field.placeholder}
+                    value={field.value}
+                    onChange={e => field.onChange(e.target.value)}
                     required
                     style={{
                       width: "100%", padding: "10px 12px",
                       border: `1.5px solid ${T.stone}`, borderRadius: "4px",
                       fontSize: "14px", color: T.ink, background: T.white,
-                      outline: "none", boxSizing: "border-box",
+                      boxSizing: "border-box",
                       transition: "border-color 180ms ease",
                     }}
                     onFocus={e => (e.currentTarget.style.borderColor = T.violet)}
@@ -477,6 +498,11 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
                   />
                 </div>
               ))}
+              {checkoutError && (
+                <p style={{ fontSize: "12px", color: "#e16540", marginBottom: "12px", lineHeight: 1.5 }}>
+                  {checkoutError}
+                </p>
+              )}
               <div style={{ marginTop: "22px" }}>
                 <PrimaryButton style={{ width: "100%", textAlign: "center" as const }}>
                   {loading ? (
@@ -485,7 +511,7 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
                         <circle cx="8" cy="8" r="6" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
                         <path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
                       </svg>
-                      Processing…
+                      Redirecting to Stripe…
                     </span>
                   ) : "Claim my assessment — $997"}
                 </PrimaryButton>
@@ -597,7 +623,7 @@ function HeroSection({ heroVisible, onCTA }: { heroVisible: boolean; onCTA: () =
       padding: "80px 24px 60px",
       position: "relative",
       overflow: "hidden",
-      background: "#ffffff",
+      background: T.white,
     }}>
       {/* Animated grid backdrop */}
       <div style={{
@@ -726,7 +752,7 @@ function HeroSection({ heroVisible, onCTA }: { heroVisible: boolean; onCTA: () =
             transform: heroVisible ? "translateY(0)" : "translateY(22px)",
             transition: "opacity 0.65s cubic-bezier(0.23, 1, 0.32, 1) 160ms, transform 0.65s cubic-bezier(0.23, 1, 0.32, 1) 160ms",
           }}>
-            has a leak. We'll find it
+            has a leak. We&apos;ll find it
           </span>
           <span style={{
             display: "block",
@@ -819,7 +845,7 @@ function HeroSection({ heroVisible, onCTA }: { heroVisible: boolean; onCTA: () =
           transition: "opacity 0.7s cubic-bezier(0.23, 1, 0.32, 1) 680ms",
           flexWrap: "wrap",
         }}>
-          {["30-day money-back guarantee", "Read-only access only", "Secured by Stripe"].map((t, i) => (
+          {["30-day money-back guarantee", "Read-only access only", "Secured by Stripe"].map(t => (
             <div key={t} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M2 6.5L4.5 9L10 3.5" stroke="#81b81a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -863,7 +889,7 @@ function LogoTicker() {
   // Duplicate for seamless loop
   const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
   return (
-    <section style={{ background: T.porcelain, borderTop: `1px solid ${T.powder}`, borderBottom: `1px solid ${T.powder}`, padding: "20px 0", overflow: "hidden" }}>
+    <section aria-hidden="true" style={{ background: T.porcelain, borderTop: `1px solid ${T.powder}`, borderBottom: `1px solid ${T.powder}`, padding: "20px 0", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
         <div style={{
           display: "flex", gap: "0",
@@ -934,10 +960,10 @@ function ROICalculator({ onCTA }: { onCTA: () => void }) {
               ROI CALCULATOR
             </p>
             <h2 style={{ fontSize: "clamp(30px, 4vw, 44px)", fontWeight: 300, color: T.white, letterSpacing: "-0.025em", margin: "0 auto 16px" }}>
-              See what you're leaving on the table
+              See what you&apos;re leaving on the table
             </h2>
             <p style={{ fontSize: "16px", color: T.washed, lineHeight: 1.65, maxWidth: "440px", margin: "0 auto" }}>
-              Adjust the sliders to your business. We'll show you what we typically find.
+              Adjust the sliders to your business. We&apos;ll show you what we typically find.
             </p>
           </div>
         </Reveal>
@@ -1206,37 +1232,6 @@ function SampleReport({ onCTA }: { onCTA: () => void }) {
   );
 }
 
-/* ── Dark mode toggle button ── */
-function DarkToggle({ dark, onToggle }: { dark: boolean; onToggle: () => void }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      onClick={onToggle}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      title={dark ? "Switch to light mode" : "Switch to dark mode"}
-      style={{
-        width: "34px", height: "34px", borderRadius: "8px",
-        border: `1.5px solid ${hov ? T.washed : T.powder}`,
-        background: hov ? T.violetBg : "transparent",
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-        color: hov ? T.violet : T.ghost,
-        transition: "all 180ms ease",
-      }}
-    >
-      {dark ? (
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-          <circle cx="7.5" cy="7.5" r="3" stroke="currentColor" strokeWidth="1.4"/>
-          <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M3.22 3.22l1.06 1.06M10.72 10.72l1.06 1.06M3.22 11.78l1.06-1.06M10.72 4.28l1.06-1.06" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        </svg>
-      ) : (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M12.5 9A6 6 0 015 1.5a6 6 0 100 11A6 6 0 0112.5 9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-        </svg>
-      )}
-    </button>
-  );
-}
 
 /* ── Mobile nav ── */
 function MobileNav({ open, onClose, onCTA }: { open: boolean; onClose: () => void; onCTA: () => void }) {
@@ -1281,7 +1276,7 @@ function MobileNav({ open, onClose, onCTA }: { open: boolean; onClose: () => voi
           onClick={onClose}
           aria-label="Close menu"
           style={{
-            width: "32px", height: "32px",
+            width: "44px", height: "44px",
             background: "rgba(255,255,255,0.5)", border: "1px solid rgba(216,214,223,0.5)",
             borderRadius: "4px", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -1356,7 +1351,10 @@ function MobileNav({ open, onClose, onCTA }: { open: boolean; onClose: () => voi
         {/* Trust line */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", marginTop: "12px" }}>
           {["30-day guarantee", "5-day delivery"].map(t => (
-            <span key={t} style={{ fontSize: "11px", color: "#64748d", letterSpacing: "0.03px" }}>✓ {t}</span>
+            <span key={t} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#64748d", letterSpacing: "0.03px" }}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3.5" stroke="var(--c-green)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {t}
+            </span>
           ))}
         </div>
       </div>
@@ -1416,14 +1414,21 @@ function ExitIntent({ onCTA, onDismiss }: { onCTA: () => void; onDismiss: () => 
           position: "relative",
         }}
       >
-        <button onClick={onDismiss} style={{
-          position: "absolute", top: "16px", right: "16px",
+        <button onClick={onDismiss} aria-label="Close" style={{
+          position: "absolute", top: "8px", right: "8px",
           background: T.porcelain, border: "none", borderRadius: "50%",
-          width: "30px", height: "30px", cursor: "pointer",
+          width: "44px", height: "44px", cursor: "pointer",
           fontSize: "16px", color: T.ghost, display: "flex", alignItems: "center", justifyContent: "center",
         }}>×</button>
 
-        <div style={{ fontSize: "36px", marginBottom: "16px" }}>👀</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+          <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: T.violetBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M1 11s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" stroke="var(--c-violet)" strokeWidth="1.8" strokeLinejoin="round"/>
+              <circle cx="11" cy="11" r="3" stroke="var(--c-violet)" strokeWidth="1.8"/>
+            </svg>
+          </div>
+        </div>
         <h2 style={{ fontSize: "24px", fontWeight: 300, color: T.ink, letterSpacing: "-0.025em", marginBottom: "12px" }}>
           Before you go…
         </h2>
@@ -1432,7 +1437,7 @@ function ExitIntent({ onCTA, onDismiss }: { onCTA: () => void; onDismiss: () => 
           <strong style={{ color: T.violet }}>$10,400/year</strong> on the table.
         </p>
         <p style={{ fontSize: "14px", color: T.ghost, marginBottom: "28px" }}>
-          See what we'd find in your business — backed by a 30-day guarantee.
+          See what we&apos;d find in your business — backed by a 30-day guarantee.
         </p>
         <PrimaryButton onClick={() => { onDismiss(); onCTA(); }} style={{ width: "100%", textAlign: "center" as const }}>
           Get my assessment — $997
@@ -1442,7 +1447,7 @@ function ExitIntent({ onCTA, onDismiss }: { onCTA: () => void; onDismiss: () => 
           background: "none", border: "none", cursor: "pointer",
           fontSize: "13px", color: T.ghost,
         }}>
-          No thanks, I'll leave money on the table
+          No thanks, I&apos;ll leave money on the table
         </button>
       </div>
     </div>
@@ -1452,7 +1457,7 @@ function ExitIntent({ onCTA, onDismiss }: { onCTA: () => void; onDismiss: () => 
 /* ── Video testimonial ── */
 function VideoTestimonial() {
   const [playing, setPlaying] = useState(false);
-  const { ref, visible } = useReveal();
+  const { ref } = useReveal();
   return (
     <section className="section-pad section-vpad" style={{ background: T.porcelain, padding: "80px 40px" }}>
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
@@ -1460,7 +1465,7 @@ function VideoTestimonial() {
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <p style={{ fontSize: "12px", fontWeight: 700, color: T.violet, letterSpacing: "0.8px", marginBottom: "10px" }}>CLIENT STORY</p>
             <h2 style={{ fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 300, color: T.ink, letterSpacing: "-0.025em", margin: 0 }}>
-              "We recovered $14,200 in the first month"
+              &quot;We recovered $14,200 in the first month&quot;
             </h2>
           </div>
         </Reveal>
@@ -1468,76 +1473,51 @@ function VideoTestimonial() {
         <div
           ref={ref}
           onClick={() => setPlaying(true)}
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPlaying(true); } }}
+          role="button"
+          tabIndex={0}
           style={{
-            borderRadius: "12px", overflow: "hidden", cursor: "pointer",
-            position: "relative", aspectRatio: "16/9",
-            background: "#0a0f1e",
-            boxShadow: playing ? "none" : "rgba(83,58,253,0.18) 0px 20px 60px -10px, rgba(0,0,0,0.15) 0px 4px 16px",
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0) scale(1)" : "translateY(16px) scale(0.98)",
-            transition: "opacity 0.6s cubic-bezier(0.23,1,0.32,1), transform 0.6s cubic-bezier(0.23,1,0.32,1), box-shadow 300ms ease",
+            position: "relative",
+            aspectRatio: "16 / 9",
+            borderRadius: "14px",
+            overflow: "hidden",
+            background: T.ink,
+            boxShadow: "0 20px 48px -12px rgba(0,0,0,0.25)",
+            cursor: "pointer",
           }}
         >
-          {!playing ? (
+          {playing ? (
+            <iframe
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+              title="Client video testimonial"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ width: "100%", height: "100%", border: "none" }}
+            />
+          ) : (
             <>
-              {/* Thumbnail */}
+              {/* Thumbnail backdrop */}
               <div style={{
                 position: "absolute", inset: 0,
-                background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
+                background: "linear-gradient(135deg, rgba(83,58,253,0.3) 0%, rgba(15,17,23,0.85) 100%)",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               }}>
-                {/* Fake waveform */}
-                <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "32px", opacity: 0.3 }}>
-                  {[18,32,24,44,36,52,28,48,38,56,30,46,22,40,34].map((h, i) => (
-                    <div key={i} style={{ width: "4px", height: `${h}px`, background: T.soft, borderRadius: "2px" }} />
-                  ))}
-                </div>
-
-                {/* Play button */}
                 <div style={{
-                  width: "64px", height: "64px", borderRadius: "50%",
-                  background: "rgba(83,58,253,0.9)",
+                  width: "68px", height: "68px", borderRadius: "50%",
+                  background: T.violet,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 0 0 8px rgba(83,58,253,0.2), 0 0 0 16px rgba(83,58,253,0.08)",
-                  transition: "transform 200ms ease, box-shadow 200ms ease",
-                  marginBottom: "20px",
+                  boxShadow: "0 8px 24px rgba(83,58,253,0.4)",
+                  transition: "transform 200ms ease",
                 }}>
-                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                    <path d="M7 4l14 7-14 7V4z" fill="white" />
+                  <svg width="20" height="22" viewBox="0 0 20 22" fill="none" style={{ marginLeft: "4px" }}>
+                    <path d="M1 2v18l17-9L1 2z" fill="#fff" />
                   </svg>
                 </div>
-
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "15px", fontWeight: 600, color: "#e2e8f0", marginBottom: "4px" }}>Sarah Kim — CEO, Acme Inc</div>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>2:47 · Watch the full story</div>
-                </div>
+                <span style={{ marginTop: "16px", fontSize: "13px", fontWeight: 500, color: T.white, letterSpacing: "0.02em" }}>
+                  Watch Sarah&apos;s story (1:42)
+                </span>
               </div>
-
-              {/* Hover overlay */}
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "rgba(83,58,253,0.06)",
-                opacity: 0, transition: "opacity 200ms ease",
-              }}
-                onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-                onMouseLeave={e => e.currentTarget.style.opacity = "0"}
-              />
             </>
-          ) : (
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "#0a0f1e",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px",
-            }}>
-              <div style={{ fontSize: "14px", color: "#64748b" }}>
-                In a real deployment, a Loom or Vimeo embed would go here.
-              </div>
-              <button onClick={e => { e.stopPropagation(); setPlaying(false); }} style={{
-                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
-                color: "#e2e8f0", borderRadius: "6px", padding: "8px 16px",
-                cursor: "pointer", fontSize: "13px",
-              }}>← Back</button>
-            </div>
           )}
         </div>
 
@@ -1547,7 +1527,7 @@ function VideoTestimonial() {
             <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #533afd, #8087ff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 700, color: "#fff", flexShrink: 0 }}>S</div>
             <div>
               <p style={{ fontSize: "15px", color: T.ink, lineHeight: 1.7, margin: "0 0 6px", fontStyle: "italic" }}>
-                "The findings call alone changed how I think about the whole business. They found $14,200 in software waste I didn't even know I was paying for."
+                &quot;The findings call alone changed how I think about the whole business. They found $14,200 in software waste I didn&apos;t even know I was paying for.&quot;
               </p>
               <p style={{ fontSize: "13px", color: T.ghost, margin: 0 }}>Sarah Kim, CEO · Acme Inc</p>
             </div>
@@ -1559,7 +1539,7 @@ function VideoTestimonial() {
 }
 
 /* ── Guarantee section ── */
-function GuaranteeSection({ onCTA }: { onCTA: () => void }) {
+function GuaranteeSection() {
   return (
     <section className="section-pad section-vpad" style={{ background: T.porcelain, padding: "80px 40px" }}>
       <div style={{ maxWidth: "820px", margin: "0 auto" }}>
@@ -1589,10 +1569,10 @@ function GuaranteeSection({ onCTA }: { onCTA: () => void }) {
 
             <div>
               <h2 style={{ fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 300, color: T.ink, letterSpacing: "-0.025em", margin: "0 0 12px" }}>
-                If you don't save more than you spent, we'll refund every dollar.
+                If you don&apos;t save more than you spent, we&apos;ll refund every dollar.
               </h2>
               <p style={{ fontSize: "15px", color: T.slate, lineHeight: 1.7, margin: "0 0 20px" }}>
-                We've done 214 audits. Fewer than 3% of clients have ever asked for a refund. But the guarantee is there because we stand behind the work — not because we need it as a sales tactic. If you don't identify at least <strong style={{ color: T.ink }}>$997 in actionable savings</strong>, just reply to your delivery email.
+                We&apos;ve done 214 audits. Fewer than 3% of clients have ever asked for a refund. But the guarantee is there because we stand behind the work — not because we need it as a sales tactic. If you don&apos;t identify at least <strong style={{ color: T.ink }}>$997 in actionable savings</strong>, just reply to your delivery email.
               </p>
               <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
                 {["No questions asked", "Instant refund", "Applies for 30 days"].map(item => (
@@ -1714,16 +1694,24 @@ export default function LandingPage() {
     return () => { document.body.style.overflow = ""; };
   }, [modalOpen]);
 
-  // Exit intent — fire once when cursor leaves toward top of viewport
+  // Exit intent — fire once when cursor leaves toward top of viewport.
+  // Armed only after a few seconds so a page load/reload with the cursor
+  // already parked near the top (address bar, devtools) can't trigger it instantly.
   useEffect(() => {
+    let armed = false;
+    const armTimer = setTimeout(() => { armed = true; }, 4000);
+
     const handler = (e: MouseEvent) => {
-      if (e.clientY < 20 && !exitShown.current && !modalOpen) {
+      if (armed && e.clientY < 20 && !exitShown.current && !modalOpen) {
         exitShown.current = true;
         setExitIntent(true);
       }
     };
     document.addEventListener("mouseleave", handler);
-    return () => document.removeEventListener("mouseleave", handler);
+    return () => {
+      clearTimeout(armTimer);
+      document.removeEventListener("mouseleave", handler);
+    };
   }, [modalOpen]);
 
   return (
@@ -1773,7 +1761,8 @@ export default function LandingPage() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileNavOpen(true)}
-            style={{ display: "none", width: "34px", height: "34px", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", color: T.ink }}
+            aria-label="Open navigation menu"
+            style={{ display: "none", width: "44px", height: "44px", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", color: T.ink }}
             className="mobile-menu-btn"
           >
             <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
@@ -1817,7 +1806,10 @@ export default function LandingPage() {
           .hero-ctas   { flex-direction: column !important; align-items: stretch !important; }
 
           /* Footer */
-          .footer-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .footer-top        { grid-template-columns: 1fr !important; gap: 40px !important; padding: 40px 20px 32px !important; }
+          .footer-nav-cols   { gap: 40px !important; }
+          .footer-bottom     { padding: 16px 20px !important; flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .footer-trust      { gap: 14px !important; }
 
           /* Sticky CTA */
           .sticky-cta { padding: 10px 16px !important; }
@@ -1880,12 +1872,12 @@ export default function LandingPage() {
 
           <div className="value-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
             {[
-              { icon: "⚙️", title: "Software & tool audit", body: "We map every subscription you're paying for and find the $3K–$15K in annual overlap most teams don't even know exists.", delay: 0 },
-              { icon: "📊", title: "Pricing gap analysis", body: "We benchmark your rates against market data. Most clients find they're leaving 15–30% on the table without knowing it.", delay: 60 },
-              { icon: "🔄", title: "Process efficiency review", body: "Manual workflows that eat hours get flagged with automation ROI estimates. You'll know exactly what to fix first.", delay: 120 },
-              { icon: "👥", title: "Team & hiring analysis", body: "Understaffed, overstaffed, or misaligned — we show you the org changes that unlock growth without adding headcount.", delay: 180 },
-              { icon: "🤖", title: "AI readiness score", body: "A scored breakdown of exactly where AI can save you 10–20 hours a week — without adding complexity to your stack.", delay: 240 },
-              { icon: "🗺️", title: "90-day action roadmap", body: "Every finding becomes a prioritized task with an owner, effort estimate, and expected ROI. Drops straight into your PM tool.", delay: 300 },
+              { icon: <Settings size={20} />, title: "Software & tool audit", body: "We map every subscription you're paying for and find the $3K–$15K in annual overlap most teams don't even know exists.", delay: 0 },
+              { icon: <BarChart2 size={20} />, title: "Pricing gap analysis", body: "We benchmark your rates against market data. Most clients find they're leaving 15–30% on the table without knowing it.", delay: 60 },
+              { icon: <RefreshCw size={20} />, title: "Process efficiency review", body: "Manual workflows that eat hours get flagged with automation ROI estimates. You'll know exactly what to fix first.", delay: 120 },
+              { icon: <Users size={20} />, title: "Team & hiring analysis", body: "Understaffed, overstaffed, or misaligned — we show you the org changes that unlock growth without adding headcount.", delay: 180 },
+              { icon: <Bot size={20} />, title: "AI readiness score", body: "A scored breakdown of exactly where AI can save you 10–20 hours a week — without adding complexity to your stack.", delay: 240 },
+              { icon: <Map size={20} />, title: "90-day action roadmap", body: "Every finding becomes a prioritized task with an owner, effort estimate, and expected ROI. Drops straight into your PM tool.", delay: 300 },
             ].map(c => (
               <ValueCard key={c.title} {...c} />
             ))}
@@ -1967,7 +1959,7 @@ export default function LandingPage() {
                     A senior consultant charges $400/hr. This is 2.5 hours of their time — for a full business teardown.
                   </p>
                   <p style={{ fontSize: "14px", color: T.washed, lineHeight: 1.65, marginBottom: "28px" }}>
-                    Delivered in 5 business days. Full refund if you don't find at least $997 in actionable savings.
+                    Delivered in 5 business days. Full refund if you don&apos;t find at least $997 in actionable savings.
                   </p>
                   <PrimaryButton onClick={() => setModalOpen(true)} style={{ width: "100%", textAlign: "center" as const }}>
                     Start my audit
@@ -2000,7 +1992,7 @@ export default function LandingPage() {
                   Built for businesses doing $500K–$10M
                 </h3>
                 <p style={{ fontSize: "14px", color: T.slate, lineHeight: 1.65, marginBottom: "28px" }}>
-                  You've grown past the early hustle but things feel fragmented. Stop guessing where the profit is going — we'll show you, with data.
+                  You&apos;ve grown past the early hustle but things feel fragmented. Stop guessing where the profit is going — we&apos;ll show you, with data.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {[
@@ -2025,7 +2017,7 @@ export default function LandingPage() {
       <VideoTestimonial />
 
       {/* ── Guarantee ── */}
-      <GuaranteeSection onCTA={() => setModalOpen(true)} />
+      <GuaranteeSection />
 
       {/* ── Testimonials ── */}
       <section className="section-pad section-vpad" style={{ background: T.powder, padding: "96px 40px" }}>
@@ -2078,7 +2070,7 @@ export default function LandingPage() {
                     <path d="M0 18V10.5C0 7.5 1.5 4.5 4.5 1.5L6 3C4.5 4.5 3.75 6 3.75 7.5H7.5V18H0ZM13.5 18V10.5C13.5 7.5 15 4.5 18 1.5L19.5 3C18 4.5 17.25 6 17.25 7.5H21V18H13.5Z" fill={T.violet} />
                   </svg>
                   <p style={{ fontSize: "15px", color: T.ink, lineHeight: 1.7, marginBottom: "20px", fontStyle: "italic" }}>
-                    "{t.quote}"
+                    &quot;{t.quote}&quot;
                   </p>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "20px" }}>
                     <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: T.violetBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2157,34 +2149,102 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="footer-inner" style={{
-        background: T.white,
-        padding: "32px 40px",
-        borderTop: `1px solid ${T.powder}`,
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        flexWrap: "wrap", gap: "16px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div style={{ width: "22px", height: "22px", borderRadius: "5px", background: T.violet, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-              <path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.9" />
-            </svg>
+      <footer style={{ background: T.ink }}>
+        {/* Main grid */}
+        <div className="footer-top" style={{
+          maxWidth: "1100px", margin: "0 auto",
+          padding: "64px 40px 52px",
+          display: "grid", gridTemplateColumns: "1fr auto", gap: "64px", alignItems: "start",
+        }}>
+          {/* Brand column */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "18px" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: T.violet, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 2L12 11H2L7 2Z" fill="white" fillOpacity="0.9" />
+                </svg>
+              </div>
+              <span style={{ fontSize: "15px", fontWeight: 600, color: T.white, letterSpacing: "-0.01em" }}>AuditAI</span>
+            </div>
+
+            <p style={{ fontSize: "14px", color: T.washed, lineHeight: 1.7, maxWidth: "268px", margin: "0 0 28px" }}>
+              Find the hidden profit in your business. Delivered in 5 days, backed by a 30-day guarantee.
+            </p>
+
+            {/* Micro metrics */}
+            <div className="footer-metrics" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[
+                { value: "214+", label: "audits delivered" },
+                { value: "$10,400", label: "average savings found" },
+                { value: "97%", label: "satisfaction rate" },
+              ].map(m => (
+                <div key={m.label} style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                  <span style={{ fontSize: "14px", fontWeight: 500, color: T.soft, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.015em" }}>{m.value}</span>
+                  <span style={{ fontSize: "12px", color: T.ghost }}>{m.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: T.ink }}>AuditAI</span>
+
+          {/* Nav columns */}
+          <div className="footer-nav-cols" style={{ display: "flex", gap: "56px" }}>
+            <div>
+              <p style={{ fontSize: "10px", fontWeight: 700, color: T.ghost, letterSpacing: "0.6px", marginBottom: "20px" }}>PRODUCT</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {[
+                  { label: "How it works", id: "process" },
+                  { label: "Pricing",      id: "pricing" },
+                  { label: "FAQ",          id: "faq" },
+                ].map(({ label, id }) => (
+                  <button
+                    key={label}
+                    onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left", fontSize: "13px", color: T.washed, transition: "color 160ms ease" }}
+                    onMouseEnter={e => (e.currentTarget.style.color = T.white)}
+                    onMouseLeave={e => (e.currentTarget.style.color = T.washed)}
+                  >{label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p style={{ fontSize: "10px", fontWeight: 700, color: T.ghost, letterSpacing: "0.6px", marginBottom: "20px" }}>LEGAL</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {["Privacy", "Terms", "Contact"].map(l => (
+                  <a key={l} href="#" style={{ fontSize: "13px", color: T.washed, textDecoration: "none", transition: "color 160ms ease" }}
+                    onMouseEnter={e => (e.currentTarget.style.color = T.white)}
+                    onMouseLeave={e => (e.currentTarget.style.color = T.washed)}
+                  >{l}</a>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "24px" }}>
-          {["Privacy", "Terms", "Contact"].map(l => (
-            <a key={l} href="#" style={{ fontSize: "13px", color: T.ghost, textDecoration: "none", transition: "color 160ms ease" }}
-              onMouseEnter={e => (e.currentTarget.style.color = T.ink)}
-              onMouseLeave={e => (e.currentTarget.style.color = T.ghost)}
-            >
-              {l}
-            </a>
-          ))}
+
+        {/* Divider */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", margin: "0 40px" }} />
+
+        {/* Bottom bar */}
+        <div className="footer-bottom" style={{
+          maxWidth: "1100px", margin: "0 auto",
+          padding: "20px 40px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: "12px",
+        }}>
+          <p style={{ fontSize: "12px", color: T.ghost, margin: 0 }}>
+            © 2026 AuditAI. All rights reserved.
+          </p>
+          <div className="footer-trust" style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+            {["Secured by Stripe", "30-day guarantee", "Read-only access"].map(t => (
+              <div key={t} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6.5L4.5 9L10 3.5" stroke="var(--c-green)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span style={{ fontSize: "11px", color: T.ghost }}>{t}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <p style={{ fontSize: "12px", color: T.ghost, margin: 0 }}>
-          © 2025 AuditAI. All rights reserved.
-        </p>
       </footer>
 
       {/* ── Mobile nav sheet ── */}
