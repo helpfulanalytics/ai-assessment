@@ -2,7 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Loader2, Lock, ShieldCheck, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowUp, Lock, ShieldCheck, Sparkles, AlertCircle } from "lucide-react";
+import { ThinkingState } from "./ThinkingState";
+import { Orb } from "./Orb";
 
 type Role = "assistant" | "user";
 interface ChatMessage { role: Role; content: string }
@@ -274,8 +276,9 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
     return shell(
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
         <div style={{ maxWidth: "440px", textAlign: "center" }}>
-          <Loader2 size={26} style={{ color: "var(--c-violet)", animation: "spin 1s linear infinite", margin: "0 auto 18px", display: "block" }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ display: "flex", justifyContent: "center", margin: "0 0 18px" }}>
+            <Orb variant="G1" size={40} style={{ color: "var(--c-violet)" }} label="Building your assessment" />
+          </div>
           <h1 style={{ fontSize: "24px", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.025em", margin: "0 0 10px" }}>
             Building your assessment
           </h1>
@@ -324,10 +327,9 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
               disabled={busy}
               style={{ width: "100%", marginTop: "12px", padding: "14px", background: busy ? "var(--c-washed)" : "var(--c-violet)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: 600, cursor: busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "inherit" }}
             >
-              {busy ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Lock size={14} />}
+              {busy ? <Orb variant="G1" size={15} label="Opening checkout" /> : <Lock size={14} />}
               {busy ? "Opening checkout..." : `Unlock my assessment — ${PRICE}`}
             </button>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
 
           <p style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: "var(--c-slate)", lineHeight: 1.6, margin: 0 }}>
@@ -401,10 +403,9 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
               disabled={busy}
               style={{ width: "100%", padding: "14px", background: busy ? "var(--c-washed)" : "var(--c-violet)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: 600, cursor: busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "inherit" }}
             >
-              {busy && <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} />}
+              {busy && <Orb variant="G1" size={15} label="One moment" />}
               {busy ? "One moment..." : paywall === "upfront" ? `Continue to payment — ${PRICE}` : "Start the interview"}
             </button>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </form>
         </div>
       </main>
@@ -436,13 +437,8 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
           ))}
 
           {busy && (
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{ background: "var(--c-white)", border: "1px solid var(--c-powder)", borderRadius: "14px 14px 14px 4px", padding: "15px 18px", display: "flex", gap: "5px" }}>
-                {[0, 1, 2].map((i) => (
-                  <span key={i} style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--c-washed)", animation: `typingPulse 1.2s ${i * 0.15}s infinite ease-in-out` }} />
-                ))}
-              </div>
-              <style>{`@keyframes typingPulse { 0%,80%,100% { opacity: 0.35; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }`}</style>
+            <div style={{ display: "flex", justifyContent: "flex-start", padding: "13px 17px" }}>
+              <ThinkingState />
             </div>
           )}
         </div>
