@@ -6,6 +6,8 @@ import {
   MessageSquareText, FileText, ShieldCheck, Clock,
   ArrowRight, Check, Plus, Minus,
 } from "lucide-react";
+import { Hero7 } from "../components/ui/Hero7";
+import { Footer14 } from "../components/ui/Footer14";
 
 const PRICE = "$297";
 
@@ -193,57 +195,10 @@ export default function Home() {
   return (
     <div style={{ background: "var(--c-white)", fontFamily: "var(--font-sans)", overflowX: "hidden" }}>
 
-      {/* ── Nav ── */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.86)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--c-powder)" }}>
-        <div style={{ ...SECTION, height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ background: "var(--c-violet)", borderRadius: "6px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: "11px", fontWeight: 700 }}>▲</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.015em", lineHeight: 1.2 }}>AssessAI</span>
-              <span style={{ fontSize: "9px", color: "var(--c-slate)", lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
-            </div>
-          </div>
-          <CTA subtle>Start — {PRICE}</CTA>
-        </div>
-      </nav>
-
-      {/* ── Hero ── */}
-      <header style={{ ...SECTION, paddingTop: "clamp(64px, 11vw, 120px)", paddingBottom: "clamp(56px, 9vw, 100px)" }}>
-        <Reveal>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: "var(--c-violet-bg)", color: "var(--c-violet)", borderRadius: "100px", padding: "6px 14px", fontSize: "12px", fontWeight: 600, marginBottom: "26px" }}>
-            <ShieldCheck size={13} />
-            5 hours a week back, or your money back
-          </div>
-        </Reveal>
-
-        <Reveal delay={60}>
-          <h1 style={{ fontSize: "clamp(34px, 6.6vw, 68px)", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.038em", lineHeight: 1.06, margin: "0 0 22px", maxWidth: "880px" }}>
-            You know your business is<br />wasting time. This tells you<br />exactly where.
-          </h1>
-        </Reveal>
-
-        <Reveal delay={120}>
-          <p style={{ fontSize: "clamp(16px, 2vw, 19px)", color: "var(--c-slate)", lineHeight: 1.7, margin: "0 0 34px", maxWidth: "580px" }}>
-            A 15-minute interview about how your business actually runs. Then a written
-            assessment of every bottleneck it found, the tools that fix each one, and a
-            four-day plan to start. {PRICE}, delivered the same hour.
-          </p>
-        </Reveal>
-
-        <Reveal delay={180}>
-          <div style={{ display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
-            <CTA>Start your assessment</CTA>
-            <span style={{ fontSize: "13px", color: "var(--c-ghost)" }}>
-              No account needed · 15 minutes
-            </span>
-          </div>
-        </Reveal>
-      </header>
+      <Hero7 />
 
       {/* ── How it works ── */}
-      <section style={{ background: "var(--c-porcelain)", borderTop: "1px solid var(--c-powder)", borderBottom: "1px solid var(--c-powder)", padding: "clamp(56px, 9vw, 96px) 0" }}>
+      <section id="how-it-works" style={{ background: "var(--c-porcelain)", borderTop: "1px solid var(--c-powder)", borderBottom: "1px solid var(--c-powder)", padding: "clamp(56px, 9vw, 96px) 0" }}>
         <div style={SECTION}>
           <Reveal><Eyebrow>How it works</Eyebrow></Reveal>
           <Reveal delay={50}><SectionTitle>A discovery call, without the calendar.</SectionTitle></Reveal>
@@ -279,7 +234,7 @@ export default function Home() {
       </section>
 
       {/* ── What's in the report ── */}
-      <section style={{ ...SECTION, padding: "clamp(56px, 9vw, 96px) 24px" }}>
+      <section id="what-you-get" style={{ ...SECTION, padding: "clamp(56px, 9vw, 96px) 24px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "clamp(32px, 5vw, 64px)", alignItems: "start" }}>
           <div>
             <Reveal><Eyebrow>What you get</Eyebrow></Reveal>
@@ -373,7 +328,7 @@ export default function Home() {
       </section>
 
       {/* ── FAQ ── */}
-      <section style={{ ...SECTION, padding: "0 24px clamp(64px, 10vw, 110px)" }}>
+      <section id="questions" style={{ ...SECTION, padding: "0 24px clamp(64px, 10vw, 110px)" }}>
         <Reveal><Eyebrow>Questions</Eyebrow></Reveal>
         <Reveal delay={50}>
           <h2 style={{ fontSize: "clamp(26px, 4.2vw, 42px)", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.028em", lineHeight: 1.14, margin: "0 0 34px" }}>
@@ -387,16 +342,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer style={{ borderTop: "1px solid var(--c-powder)", background: "var(--c-porcelain)", padding: "34px 0" }}>
-        <div style={{ ...SECTION, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-          <p style={{ fontSize: "13px", color: "var(--c-ghost)", margin: 0 }}>
-            © 2026 AssessAI · powered by{" "}
-            <a href="https://erasefriction.com" style={{ color: "var(--c-violet)", textDecoration: "none" }}>EraseFriction</a>
-          </p>
-          <CTA subtle>Start — {PRICE}</CTA>
-        </div>
-      </footer>
+      <Footer14 />
     </div>
   );
 }
