@@ -4,18 +4,20 @@ import PageTransition from "../components/PageTransition";
 
 const SITE_URL = "https://erasefriction.com";
 
+const TITLE = "AssessAI — Find where your business is wasting time";
+const DESCRIPTION =
+  "A 15-minute interview about how your business actually runs, then a written assessment of every bottleneck, the off-the-shelf tools that fix each one, and a four-day plan to start. $297, delivered the same hour.";
+
 export const metadata: Metadata = {
-  title: "AssessAI — Find the $10K+ Your Business Is Leaking in 5 Days",
-  description:
-    "Businesses doing $500K–$10M bleed $8,000–$20,000/year through duplicate tools, underpriced services, and manual work. We audit everything and hand you a fix-it plan in 5 days. 30-day guarantee.",
+  title: TITLE,
+  description: DESCRIPTION,
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "AssessAI — Find the $10K+ Your Business Is Leaking in 5 Days",
-    description:
-      "A senior consultant audits your entire business — tools, pricing, processes, and team — and delivers a prioritized roadmap in 5 days. Average savings found: $10,400.",
+    title: TITLE,
+    description: DESCRIPTION,
     url: SITE_URL,
     siteName: "AssessAI",
     locale: "en_US",
@@ -23,9 +25,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "AssessAI — Find the $10K+ Your Business Is Leaking in 5 Days",
-    description:
-      "214+ businesses audited. $10,400 average savings found. Delivered in 5 days with a 30-day money-back guarantee.",
+    title: TITLE,
+    description: "15-minute interview. Written assessment of where your time is going, and the tools that fix it. $297, or free if it can't find you 5 hours a week.",
   },
   robots: {
     index: true,

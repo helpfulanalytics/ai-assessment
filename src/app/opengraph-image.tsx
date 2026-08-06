@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "AssessAI — Find the $10K+ Your Business Is Leaking in 5 Days";
+export const alt = "AssessAI — Find where your business is wasting time, in 15 minutes";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -122,8 +122,8 @@ export default function OGImage() {
                   margin: 0,
                 }}
               >
-                Your business has a leak.{"\n"}
-                <span style={{ color: "#8087ff" }}>We&apos;ll find it in 5 days.</span>
+                You know your business is wasting time.{"\n"}
+                <span style={{ color: "#8087ff" }}>This tells you exactly where.</span>
               </h1>
               <p
                 style={{
@@ -135,7 +135,7 @@ export default function OGImage() {
                   maxWidth: "700px",
                 }}
               >
-                Businesses doing $500K–$10M bleed $8K–$20K/year. We audit everything and hand you a fix-it plan — guaranteed.
+                A 15-minute interview, then a written assessment of every bottleneck, the tools that fix each one, and a four-day plan to start.
               </p>
             </div>
           </div>
@@ -143,10 +143,10 @@ export default function OGImage() {
           {/* Bottom stats row */}
           <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
             {[
-              { value: "214+", label: "Audits delivered" },
-              { value: "$10,400", label: "Avg. savings found" },
-              { value: "97%", label: "Satisfaction rate" },
-              { value: "30-day", label: "Money-back guarantee" },
+              { value: "$297", label: "One flat price" },
+              { value: "15 min", label: "To complete" },
+              { value: "Same hour", label: "Report delivered" },
+              { value: "5 hrs/wk", label: "Found, or it's free" },
             ].map((stat, i) => (
               <div
                 key={stat.label}

@@ -6,7 +6,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: "/admin",
+        // Private per-client surfaces: sessions and reports live at unguessable URLs.
+        disallow: ["/discovery", "/assessment", "/success"],
       },
     ],
     sitemap: "https://erasefriction.com/sitemap.xml",
