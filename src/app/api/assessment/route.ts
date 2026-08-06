@@ -27,6 +27,14 @@ const client = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
 });
 
+/**
+ * A full report is up to 16k tokens and may be generated twice when the first
+ * attempt breaks a rule, which comfortably exceeds the default serverless
+ * timeout. Without this the client watches the progress screen until the
+ * function is killed out from under it.
+ */
+export const maxDuration = 300;
+
 const MODEL = "anthropic/claude-sonnet-5";
 const MAX_TOKENS = 16384;
 /** One regeneration attempt when the first output violates the offer's rules. */

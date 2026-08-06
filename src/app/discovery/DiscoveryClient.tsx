@@ -339,6 +339,34 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
     );
   }
 
+  // ── Generation failed on a session that has nothing left to answer ──
+  // Without this the client falls through to the chat view and is asked to keep
+  // typing after they've already finished — and, in report mode, already paid.
+  if (chatComplete && error && !generating) {
+    return shell(
+      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
+        <div style={{ maxWidth: "440px", textAlign: "center" }}>
+          <h1 style={{ fontSize: "24px", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.025em", margin: "0 0 12px", lineHeight: 1.2 }}>
+            We couldn&apos;t finish your report
+          </h1>
+          <p style={{ fontSize: "15px", color: "var(--c-slate)", lineHeight: 1.7, margin: "0 0 8px" }}>
+            {error}
+          </p>
+          <p style={{ fontSize: "14px", color: "var(--c-ghost)", lineHeight: 1.65, margin: "0 0 24px" }}>
+            Your interview is saved and your payment is safe — nothing needs redoing. Try again, or
+            reply to your receipt and we&apos;ll sort it out by hand.
+          </p>
+          <button
+            onClick={() => { setError(null); setGenerating(true); generate(); }}
+            style={{ padding: "13px 26px", background: "var(--c-violet)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Try again
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   // ── Gate: name, email, company ──
   if (!sessionId) {
     return shell(
