@@ -32,6 +32,42 @@ interface TurnDecision {
   reply: string;
 }
 
+/**
+ * The turn is taken through a forced tool call rather than `response_format:
+ * json_object`. That parameter is an OpenAI shape; Anthropic models do not
+ * implement it, and OpenRouter's emulation degrades to a prompt hint — so the
+ * model would periodically answer in plain prose and the whole turn would fail
+ * to parse. Tool calling is supported natively, so the envelope is enforced by
+ * the API instead of by the model's willingness to comply.
+ */
+const TURN_TOOL_NAME = "reply_to_client";
+
+const TURN_TOOL: OpenAI.ChatCompletionFunctionTool = {
+  type: "function",
+  function: {
+    name: TURN_TOOL_NAME,
+    description:
+      "Say your next line to the client, and record whether the current topic is now covered.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      required: ["action", "reply"],
+      properties: {
+        action: {
+          type: "string",
+          enum: ["probe", "advance"],
+          description:
+            "'probe' to ask one more follow-up about what they just said; 'advance' when the current topic is covered.",
+        },
+        reply: {
+          type: "string",
+          description: "What you say next, in your own voice. Two or three sentences at most.",
+        },
+      },
+    },
+  },
+};
+
 function systemPrompt(session: DiscoverySession, mustAdvance: boolean, answerWasThin: boolean): string {
   const topic = topicAt(session.topicIndex);
   const next = topicAt(session.topicIndex + 1);
@@ -62,8 +98,7 @@ ${mustAdvance
     ? `The client's last answer was very short. Choose "probe" and warmly ask them to give you a bit more detail — a specific example works best.`
     : `Prefer "probe" when there is a concrete detail worth pulling on. Prefer "advance" when the answer already covers what the topic needs, or when the client clearly has nothing more to add.`}
 
-Respond with ONLY a JSON object, no prose and no markdown fences:
-{"action": "probe" | "advance", "reply": "what you say next, in your own voice"}`;
+Answer by calling the reply_to_client tool. Put what you say to the client in "reply" and your choice in "action". Everything the client should read goes in "reply" — never write anything outside the tool call.`;
 }
 
 function extractJson(raw: string): string {
@@ -81,26 +116,56 @@ async function decideTurn(
 ): Promise<TurnDecision> {
   const completion = await client.chat.completions.create({
     model: MODEL,
-    max_tokens: 400,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    response_format: { type: "json_object" } as any,
+    // Room for a 2-3 sentence reply plus the tool-call envelope. A truncated
+    // tool call yields unparseable arguments, which costs a whole turn.
+    max_tokens: 512,
+    tools: [TURN_TOOL],
+    tool_choice: { type: "function", function: { name: TURN_TOOL_NAME } },
     messages: [
       { role: "system", content: systemPrompt(session, mustAdvance, answerWasThin) },
       ...session.messages.map((m) => ({ role: m.role, content: m.content })),
     ],
   });
 
-  const raw = completion.choices[0]?.message?.content ?? "";
-  if (!raw.trim()) throw new Error("Model returned an empty turn.");
-
-  const parsed = JSON.parse(extractJson(raw)) as Partial<TurnDecision>;
-  const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
-  if (!reply) throw new Error("Model returned a turn with no reply.");
-
-  return {
-    action: parsed.action === "probe" && !mustAdvance ? "probe" : "advance",
+  const choice = completion.choices[0];
+  const settle = (d: Partial<TurnDecision>, reply: string): TurnDecision => ({
+    action: d.action === "probe" && !mustAdvance ? "probe" : "advance",
     reply,
-  };
+  });
+
+  // 1. The expected path — arguments are structurally guaranteed by the tool call.
+  const call = choice?.message?.tool_calls?.[0];
+  const args = call?.type === "function" ? call.function.arguments : undefined;
+  if (args) {
+    try {
+      const parsed = JSON.parse(args) as Partial<TurnDecision>;
+      const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
+      if (reply) return settle(parsed, reply);
+    } catch (err) {
+      console.warn("[discovery] tool arguments did not parse; falling back to content.", err);
+    }
+  }
+
+  const raw = (choice?.message?.content ?? "").trim();
+  if (!raw) throw new Error("Model returned an empty turn.");
+
+  // 2. The model answered in content anyway, but in JSON.
+  try {
+    const parsed = JSON.parse(extractJson(raw)) as Partial<TurnDecision>;
+    const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
+    if (reply) return settle(parsed, reply);
+  } catch {
+    // Falls through to salvage.
+  }
+
+  // 3. The model answered in plain prose. That prose is a perfectly good reply —
+  // only the action is missing, so treat it as a probe and let the probe cap
+  // force the topic forward. Guessing "advance" here would silently skip one of
+  // the seven scripted topics, which is the one outcome worth avoiding.
+  console.warn(
+    `[discovery] no structured turn for session ${session.id} at topic ${session.topicIndex}; salvaging prose reply.`
+  );
+  return { action: mustAdvance ? "advance" : "probe", reply: raw };
 }
 
 /** The client-facing view of a session. Never leaks email, Stripe ids, or paywall internals beyond what the UI needs. */
