@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Lock, ShieldCheck, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowUp, Check, Link2, Lock, AlertCircle } from "lucide-react";
 import { ThinkingState } from "./ThinkingState";
 import { Orb } from "./Orb";
+import { DISCOVERY_TOPICS } from "../../lib/discovery-script";
 
 type Role = "assistant" | "user";
 interface ChatMessage { role: Role; content: string }
@@ -24,58 +25,105 @@ export type InitialState =
     };
 
 const PRICE = "$297";
+const TOPIC_COUNT = DISCOVERY_TOPICS.length;
 
-/** What the report contains. Doubles as the paywall's value proof, so it stays truthful. */
+/** Mirrors the landing page's list exactly — the offer must not shrink at the moment of payment. */
 const REPORT_CONTENTS = [
-  "A written breakdown of every bottleneck we found, with hours lost per week",
-  "3–7 specific off-the-shelf tools, each mapped to the bottleneck it solves",
+  "Every bottleneck we found, with hours lost per week",
+  "3–7 named tools, each mapped to the bottleneck it solves",
+  "Monthly cost and implementation effort for every recommendation",
   "An effort-vs-impact matrix so you know what to do first",
-  "A four-day quick start plan, highest-impact fix on day one",
+  "A four-day quick start plan, sequenced by impact",
+  "An honest total — deduplicated, not the sum of best cases",
 ];
 
 const GENERATING_STEPS = [
-  "Reading back through your interview...",
-  "Identifying where the time is going...",
-  "Estimating hours lost per process...",
-  "Matching bottlenecks to off-the-shelf tools...",
-  "Scoring effort against impact...",
-  "Building your four-day quick start plan...",
+  "Reading back through your interview…",
+  "Identifying where the time is going…",
+  "Estimating hours lost per process…",
+  "Matching bottlenecks to off-the-shelf tools…",
+  "Scoring effort against impact…",
+  "Building your four-day quick start plan…",
 ];
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--c-white)",
-  border: "1px solid var(--c-powder)",
-  borderRadius: "10px",
-  padding: "11px 14px",
-  fontSize: "14px",
-  color: "var(--c-ink)",
-  fontFamily: "inherit",
-  outline: "none",
-};
+/** Shown once the scripted steps run out, so a slow generation never looks frozen. */
+const GENERATING_HOLD = "Still writing — longer answers take a little longer to work through.";
+
+const SUPPORT_EMAIL = "support@erasefriction.com";
+
+/* ─────────────────────────── primitives ─────────────────────────── */
 
 function Logo() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-      <div style={{ background: "var(--c-violet)", borderRadius: "5px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ color: "#fff", fontSize: "10px", fontWeight: 700 }}>▲</span>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.01em", lineHeight: 1.2 }}>AssessAI</span>
-        <span style={{ fontSize: "9px", color: "var(--c-slate)", lineHeight: 1, marginTop: "2px" }}>powered by EraseFriction</span>
-      </div>
+    <div className="flex items-center gap-2">
+      <span className="flex size-5 items-center justify-center rounded-[6px] bg-[var(--c-violet)]">
+        <span className="text-[10px] font-bold leading-none text-white">▲</span>
+      </span>
+      <span className="flex flex-col leading-none">
+        <span className="text-[13px] font-semibold tracking-tight text-[var(--c-ink)]">AssessAI</span>
+        <span className="mt-0.5 text-[9px] text-[var(--c-slate)]">powered by EraseFriction</span>
+      </span>
     </div>
   );
 }
 
 function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" style={{ display: "flex", alignItems: "flex-start", gap: "7px", fontSize: "13px", color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "9px", padding: "10px 13px", margin: "0 0 14px", lineHeight: 1.5 }}>
-      <AlertCircle size={14} style={{ flexShrink: 0, marginTop: "2px" }} />
+    <p role="alert" className="mb-3.5 flex items-start gap-2 rounded-[6px] border border-[#fde68a] bg-[#fffbeb] px-3 py-2.5 text-[13px] leading-relaxed text-[#92400e]">
+      <AlertCircle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
       {children}
     </p>
   );
 }
+
+const fieldClass =
+  "w-full rounded-[6px] border border-[var(--c-powder)] bg-[var(--c-white)] px-3.5 py-2.5 text-[15px] text-[var(--c-ink)] " +
+  "transition-[border-color,box-shadow] duration-150 placeholder:text-[var(--c-ghost)] " +
+  "focus-visible:border-[var(--c-violet)] focus-visible:shadow-[0_0_0_3px_var(--c-violet-bg)] focus-visible:outline-none";
+
+const primaryBtnClass =
+  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[6px] bg-[var(--c-violet)] px-6 text-[15px] font-semibold text-white " +
+  "transition-[background-color,transform] duration-150 hover:bg-[#4630e0] active:translate-y-px " +
+  "disabled:cursor-default disabled:bg-[var(--c-slate)] " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--c-violet)]";
+
+/** One row of the interview's contents. The spine is the signature detail of this page. */
+function TopicRow({ label, index, state }: { label: string; index: number; state: "done" | "current" | "todo" }) {
+  return (
+    <li className="flex items-start gap-2.5 py-1.5" aria-current={state === "current" ? "step" : undefined}>
+      <span
+        className={
+          "mt-px flex size-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums " +
+          (state === "done"
+            ? "bg-[var(--c-violet-bg)] text-[var(--c-violet)]"
+            : state === "current"
+            ? "bg-[var(--c-violet)] text-white"
+            : "border border-[var(--c-powder)] text-[var(--c-ghost)]")
+        }
+      >
+        {state === "done" ? <Check size={11} strokeWidth={3} aria-hidden="true" /> : index + 1}
+      </span>
+      <span
+        className={
+          "text-[13px] leading-snug " +
+          (state === "current"
+            ? "font-medium text-[var(--c-ink)]"
+            : state === "done"
+            ? "text-[var(--c-slate)]"
+            : "text-[var(--c-ghost)]")
+        }
+      >
+        {label}
+      </span>
+    </li>
+  );
+}
+
+function topicState(i: number, current: number): "done" | "current" | "todo" {
+  return i < current ? "done" : i === current ? "current" : "todo";
+}
+
+/* ─────────────────────────── component ─────────────────────────── */
 
 export default function DiscoveryClient({ initial }: { initial: InitialState }) {
   const router = useRouter();
@@ -85,18 +133,17 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
   const [messages, setMessages] = useState<ChatMessage[]>(initial.kind === "session" ? initial.messages : []);
   const [progress, setProgress] = useState(initial.kind === "session" ? initial.progress : 0);
   const [chatComplete, setChatComplete] = useState(initial.kind === "session" ? initial.chatComplete : false);
+  const [company, setCompany] = useState(initial.kind === "session" ? initial.company : "");
 
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
+  const [companyInput, setCompanyInput] = useState("");
 
-  // A session that arrives already paid for and fully answered goes straight to
-  // generating — derived here rather than set from an effect, so the page renders
-  // in its real state on the first pass instead of flashing the chat.
   const arrivesEntitled =
     initial.kind === "session" &&
     !initial.reportId &&
@@ -110,21 +157,60 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  /** False once the user scrolls up to re-read; stops us yanking them back to the tail. */
+  const followTail = useRef(true);
 
   const paywall = initial.paywall;
   const blocked = chatComplete && paywall === "report" && status === "awaiting_payment";
+  const topicIndex = Math.min(Math.round(progress * TOPIC_COUNT), TOPIC_COUNT - 1);
+  const answerCount = messages.filter((m) => m.role === "user").length;
+
+  /* Scroll discipline: follow the tail, but yield the moment the user scrolls up. */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      followTail.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [sessionId]);
 
   useEffect(() => {
+    if (!followTail.current) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, busy]);
 
+  /* Auto-grow the composer. maxHeight matches the class below. */
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [draft]);
+
+  /* A half-typed answer survives a reload or a stray back-swipe. Reading sessionStorage
+     has to happen after hydration — the server cannot see it, so doing this during render
+     would make the server and client markup disagree. */
+  useEffect(() => {
+    if (!sessionId) return;
+    const saved = sessionStorage.getItem(`draft:${sessionId}`);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved) setDraft(saved);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const t = setTimeout(() => sessionStorage.setItem(`draft:${sessionId}`, draft), 400);
+    return () => clearTimeout(t);
+  }, [draft, sessionId]);
+
   useEffect(() => {
     if (!generating) return;
-    const t = setInterval(() => setStep((s) => Math.min(s + 1, GENERATING_STEPS.length - 1)), 6000);
+    const t = setInterval(() => setStep((s) => Math.min(s + 1, GENERATING_STEPS.length)), 6000);
     return () => clearInterval(t);
   }, [generating]);
 
-  /** Callers own the `generating` flag; this only performs the request and routes. */
   const generate = useCallback(async () => {
     try {
       const res = await fetch("/api/assessment", {
@@ -142,20 +228,25 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
   }, [sessionId, router]);
 
   useEffect(() => {
-    // An already-generated report is just a redirect. Otherwise, a session that
-    // arrived entitled starts generating — including the return trip from Stripe,
-    // so the client never has to press anything twice.
     if (initial.kind === "session" && initial.reportId) {
       router.replace(`/assessment/${initial.reportId}`);
       return;
     }
-    // generate() only setStates behind an await, on the failure path — no synchronous
-    // cascade, which the rule can't see through the async boundary.
+    // generate() only setStates behind an await, on the failure path — no synchronous cascade.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (arrivesEntitled) generate();
-    // Mount-only: this is an arrival decision, not a reaction to state changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function copyResumeLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      setError("Couldn't copy — you can copy the address bar instead.");
+    }
+  }
 
   async function startSession(e: React.FormEvent) {
     e.preventDefault();
@@ -163,9 +254,10 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
     setError(null);
     try {
       const endpoint = paywall === "upfront" ? "/api/checkout" : "/api/discovery";
-      const payload = paywall === "upfront"
-        ? { name, email, company }
-        : { action: "start", email, company, contact: name };
+      const payload =
+        paywall === "upfront"
+          ? { name, email, company: companyInput }
+          : { action: "start", email, company: companyInput, contact: name };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -184,6 +276,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
       setStatus(data.status);
       setMessages(data.messages);
       setProgress(data.progress);
+      setCompany(data.company ?? companyInput);
       window.history.replaceState(null, "", `/discovery?s=${data.sessionId}`);
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
@@ -199,6 +292,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
     setBusy(true);
     setError(null);
+    followTail.current = true;
     setMessages((m) => [...m, { role: "user", content: text }]);
     setDraft("");
 
@@ -215,8 +309,8 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
       setProgress(data.progress);
       setStatus(data.status);
       setChatComplete(data.chatComplete);
+      sessionStorage.removeItem(`draft:${sessionId}`);
 
-      // Upfront payers have nothing left to do — the report starts building itself.
       if (data.chatComplete && paywall === "upfront") {
         setBusy(false);
         setGenerating(true);
@@ -224,7 +318,6 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
         return;
       }
     } catch (err) {
-      // Put the answer back so nothing the client typed is lost to a failed turn.
       setMessages((m) => m.slice(0, -1));
       setDraft(text);
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -252,203 +345,293 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
     }
   }
 
-  const shell = (children: React.ReactNode) => (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "var(--c-porcelain)", fontFamily: "var(--font-sans)" }}>
-      <header style={{ background: "var(--c-white)", borderBottom: "1px solid var(--c-powder)", padding: "0 20px", height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+  /* ─────────────────────────── shell ─────────────────────────── */
+
+  const shell = (children: React.ReactNode, opts?: { rail?: boolean }) => (
+    <div className="flex min-h-[100dvh] flex-col bg-[var(--c-porcelain)] font-sans">
+      <header className="flex h-13 shrink-0 items-center justify-between border-b border-[var(--c-powder)] bg-[var(--c-white)] px-5 py-3">
         <Logo />
         {sessionId && !chatComplete && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--c-ghost)", letterSpacing: "0.3px", textTransform: "uppercase" }}>
-              {Math.round(progress * 100)}% through
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] text-[var(--c-slate)] tabular-nums">
+              Question <span className="font-medium text-[var(--c-ink)]">{topicIndex + 1}</span> of {TOPIC_COUNT}
             </span>
-            <div style={{ width: "88px", height: "4px", borderRadius: "100px", background: "var(--c-powder)", overflow: "hidden" }}>
-              <div style={{ width: "100%", height: "100%", background: "var(--c-violet)", borderRadius: "100px", transformOrigin: "left", transform: `scaleX(${Math.max(progress, 0.04)})`, transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)" }} />
-            </div>
+            <button
+              onClick={copyResumeLink}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12px] text-[var(--c-slate)] transition-colors duration-150 hover:text-[var(--c-violet)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--c-violet)]"
+            >
+              {copied ? <Check size={13} aria-hidden="true" /> : <Link2 size={13} aria-hidden="true" />}
+              <span className="hidden sm:inline">{copied ? "Link copied" : "Save my link"}</span>
+            </button>
           </div>
         )}
       </header>
-      {children}
+      <div className={opts?.rail ? "mx-auto flex w-full max-w-5xl flex-1 gap-10 px-5" : "flex flex-1 flex-col"}>{children}</div>
     </div>
   );
 
-  // ── Generating ──
+  /* ─────────────────────────── generating ─────────────────────────── */
+
   if (generating) {
     return shell(
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-        <div style={{ maxWidth: "440px", textAlign: "center" }}>
-          <div style={{ display: "flex", justifyContent: "center", margin: "0 0 18px" }}>
-            <Orb variant="G1" size={40} style={{ color: "var(--c-violet)" }} label="Building your assessment" />
-          </div>
-          <h1 style={{ fontSize: "24px", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.025em", margin: "0 0 10px" }}>
-            Building your assessment
+      <main className="flex flex-1 items-center justify-center px-5 py-16" aria-busy="true">
+        <div className="w-full max-w-[440px]">
+          <Orb variant="G1" size={36} style={{ color: "var(--c-violet)" }} label="Building your assessment" />
+          <h1 className="mt-5 text-[26px] font-normal leading-tight tracking-tight text-[var(--c-ink)]">
+            Writing {company || "your"} assessment
           </h1>
-          <p style={{ fontSize: "14px", color: "var(--c-slate)", lineHeight: 1.65, margin: "0 0 22px" }}>
-            {GENERATING_STEPS[step]}
+          <p aria-live="polite" className="mt-2.5 text-[15px] leading-relaxed text-[var(--c-slate)]">
+            {GENERATING_STEPS[step] ?? GENERATING_HOLD}
           </p>
-          <p style={{ fontSize: "12px", color: "var(--c-ghost)", margin: 0 }}>
-            This takes about a minute. Don&apos;t close this page — we&apos;ll also email you the link.
+          <p className="mt-5 border-t border-[var(--c-powder)] pt-4 text-[13px] leading-relaxed text-[var(--c-slate)]">
+            Usually about a minute. Keep this tab open and your report opens by itself — if you need to go,
+            we&apos;ll email the link to you. Nothing is lost either way.
           </p>
         </div>
       </main>
     );
   }
 
-  // ── Paywall (report position) ──
-  if (blocked) {
-    return shell(
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-        <div style={{ maxWidth: "480px", width: "100%" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "var(--c-violet-bg)", color: "var(--c-violet)", borderRadius: "100px", padding: "5px 12px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.4px", textTransform: "uppercase", marginBottom: "16px" }}>
-            <Sparkles size={12} /> Interview complete
-          </div>
+  /* ─────────────────────────── generation failed ─────────────────────────── */
 
-          <h1 style={{ fontSize: "clamp(24px, 5vw, 32px)", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.03em", margin: "0 0 12px", lineHeight: 1.2 }}>
-            Your assessment is ready to build.
-          </h1>
-          <p style={{ fontSize: "15px", color: "var(--c-slate)", lineHeight: 1.7, margin: "0 0 24px" }}>
-            You answered every question — that&apos;s everything needed. Unlock your report and it&apos;s generated and emailed to you in about a minute.
-          </p>
-
-          {error && <ErrorNote>{error}</ErrorNote>}
-
-          <div style={{ background: "var(--c-white)", border: "1px solid var(--c-powder)", borderRadius: "14px", padding: "22px 24px", marginBottom: "18px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-            <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--c-slate)", letterSpacing: "0.5px", textTransform: "uppercase", margin: "0 0 14px" }}>
-              What you get
-            </p>
-            {REPORT_CONTENTS.map((item) => (
-              <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: "9px", marginBottom: "11px" }}>
-                <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--c-violet)", flexShrink: 0, marginTop: "7px" }} />
-                <p style={{ fontSize: "14px", color: "var(--c-slate)", lineHeight: 1.6, margin: 0 }}>{item}</p>
-              </div>
-            ))}
-
-            <button
-              onClick={payForReport}
-              disabled={busy}
-              style={{ width: "100%", marginTop: "12px", padding: "14px", background: busy ? "var(--c-washed)" : "var(--c-violet)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: 600, cursor: busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "inherit" }}
-            >
-              {busy ? <Orb variant="G1" size={15} label="Opening checkout" /> : <Lock size={14} />}
-              {busy ? "Opening checkout..." : `Unlock my assessment — ${PRICE}`}
-            </button>
-          </div>
-
-          <p style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: "var(--c-slate)", lineHeight: 1.6, margin: 0 }}>
-            <ShieldCheck size={15} style={{ color: "var(--c-green)", flexShrink: 0, marginTop: "1px" }} />
-            If your assessment doesn&apos;t identify at least 5 recoverable hours a week, it says so on the front page — and your {PRICE} is refunded in full.
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Generation failed on a session that has nothing left to answer ──
-  // Without this the client falls through to the chat view and is asked to keep
-  // typing after they've already finished — and, in report mode, already paid.
   if (chatComplete && error && !generating) {
     return shell(
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-        <div style={{ maxWidth: "440px", textAlign: "center" }}>
-          <h1 style={{ fontSize: "24px", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.025em", margin: "0 0 12px", lineHeight: 1.2 }}>
-            We couldn&apos;t finish your report
+      <main className="flex flex-1 items-center justify-center px-5 py-16">
+        <div className="w-full max-w-[460px]">
+          <h1 className="text-[26px] font-normal leading-tight tracking-tight text-[var(--c-ink)]">
+            Your interview and your payment are both safe.
           </h1>
-          <p style={{ fontSize: "15px", color: "var(--c-slate)", lineHeight: 1.7, margin: "0 0 8px" }}>
-            {error}
+          <p className="mt-3 text-[15px] leading-relaxed text-[var(--c-slate)]">
+            The report didn&apos;t finish writing. Nothing needs redoing — your answers are saved and we can pick
+            up exactly where this stopped.
           </p>
-          <p style={{ fontSize: "14px", color: "var(--c-ghost)", lineHeight: 1.65, margin: "0 0 24px" }}>
-            Your interview is saved and your payment is safe — nothing needs redoing. Try again, or
-            reply to your receipt and we&apos;ll sort it out by hand.
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button onClick={() => { setError(null); setGenerating(true); generate(); }} className={primaryBtnClass + " sm:w-auto"}>
+              Try again
+            </button>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Assessment didn't finish (${sessionId})`)}`}
+              className="inline-flex min-h-11 items-center justify-center rounded-[6px] border border-[var(--c-stone)] px-6 text-[15px] font-medium text-[var(--c-ink)] transition-colors duration-150 hover:bg-[var(--c-white)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--c-violet)]"
+            >
+              Email us instead
+            </a>
+          </div>
+          <p className="mt-5 text-[12px] leading-relaxed text-[var(--c-slate)]">
+            Reference <code className="rounded bg-[var(--c-powder)] px-1 py-0.5 tabular-nums">{sessionId}</code> — it&apos;s already in the subject line.
           </p>
-          <button
-            onClick={() => { setError(null); setGenerating(true); generate(); }}
-            style={{ padding: "13px 26px", background: "var(--c-violet)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            Try again
-          </button>
+          <p className="mt-3 text-[12px] leading-relaxed text-[var(--c-slate)]">{error}</p>
         </div>
       </main>
     );
   }
 
-  // ── Gate: name, email, company ──
-  if (!sessionId) {
+  /* ─────────────────────────── paywall ─────────────────────────── */
+
+  if (blocked) {
     return shell(
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-        <div style={{ maxWidth: "420px", width: "100%" }}>
-          <h1 style={{ fontSize: "clamp(24px, 5vw, 32px)", fontWeight: 300, color: "var(--c-ink)", letterSpacing: "-0.03em", margin: "0 0 12px", lineHeight: 1.2 }}>
-            {paywall === "upfront" ? "Start your assessment." : "Let's talk about your business."}
-          </h1>
-          <p style={{ fontSize: "15px", color: "var(--c-slate)", lineHeight: 1.7, margin: "0 0 26px" }}>
-            {paywall === "upfront"
-              ? `${PRICE} gets you a 15-minute interview and a written assessment of where your business is losing time.`
-              : "A 15-minute interview, then a written assessment of where your business is losing time. Nothing to pay to get started."}
-          </p>
-
-          {error && <ErrorNote>{error}</ErrorNote>}
-
-          <form onSubmit={startSession}>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--c-slate)", marginBottom: "6px" }}>Your name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jordan Reyes" style={{ ...inputStyle, marginBottom: "14px" }} />
-
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--c-slate)", marginBottom: "6px" }}>Business name</label>
-            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Riverside Family Dental" style={{ ...inputStyle, marginBottom: "14px" }} />
-
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--c-slate)", marginBottom: "6px" }}>Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" style={{ ...inputStyle, marginBottom: "8px" }} />
-            <p style={{ fontSize: "12px", color: "var(--c-ghost)", margin: "0 0 20px", lineHeight: 1.5 }}>
-              We send your report here, and a link back into your interview if you need to step away.
+      <main className="flex flex-1 items-start justify-center px-5 py-12 sm:py-16">
+        <div className="grid w-full max-w-4xl gap-10 lg:grid-cols-[1fr_360px] lg:gap-14">
+          <div>
+            <p className="text-[13px] text-[var(--c-slate)]">
+              <Check size={13} className="mr-1 inline text-[var(--c-violet)]" aria-hidden="true" />
+              Interview complete
+            </p>
+            <h1 className="mt-2 text-[clamp(26px,4.5vw,34px)] font-normal leading-[1.15] tracking-tight text-[var(--c-ink)]">
+              {company ? `${company}'s assessment` : "Your assessment"} is ready to build.
+            </h1>
+            <p className="mt-3 max-w-[46ch] text-[15px] leading-relaxed text-[var(--c-slate)]">
+              You gave {answerCount} answers across all {TOPIC_COUNT} topics — that&apos;s everything needed.
+              Unlock it and the report is written and emailed to you in about a minute.
             </p>
 
-            <button
-              type="submit"
-              disabled={busy}
-              style={{ width: "100%", padding: "14px", background: busy ? "var(--c-washed)" : "var(--c-violet)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: 600, cursor: busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "inherit" }}
-            >
-              {busy && <Orb variant="G1" size={15} label="One moment" />}
-              {busy ? "One moment..." : paywall === "upfront" ? `Continue to payment — ${PRICE}` : "Start the interview"}
-            </button>
-          </form>
+            <p className="mt-8 text-[13px] font-medium text-[var(--c-ink)]">What you told us about</p>
+            <ul className="mt-2">
+              {DISCOVERY_TOPICS.map((t, i) => (
+                <TopicRow key={t.id} label={t.label} index={i} state="done" />
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            {error && <ErrorNote>{error}</ErrorNote>}
+            <div className="rounded-[10px] border border-[var(--c-powder)] bg-[var(--c-white)] p-6 shadow-[0_1px_2px_rgba(6,27,49,0.04),0_8px_24px_-12px_rgba(6,27,49,0.10)]">
+              <p className="text-[13px] leading-relaxed text-[var(--c-slate)]">
+                A consultant&apos;s discovery call is $2,000+ and takes a week.
+              </p>
+              <p className="mt-1 text-[32px] font-normal leading-none tracking-tight text-[var(--c-ink)] tabular-nums">{PRICE}</p>
+
+              <ul className="mt-5 space-y-2.5">
+                {REPORT_CONTENTS.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5">
+                    <Check size={13} strokeWidth={2.5} className="mt-1 shrink-0 text-[var(--c-slate)]" aria-hidden="true" />
+                    <span className="text-[13px] leading-snug text-[var(--c-slate)]">{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-5 rounded-[6px] border border-[var(--c-powder)] bg-[var(--c-porcelain)] p-3">
+                <p className="text-[13px] font-medium text-[var(--c-ink)]">Find 5 hours a week, or it&apos;s free.</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-[var(--c-slate)]">
+                  The report works the number out from your own answers. Under five, it says so on the front page
+                  and you&apos;re refunded in full.
+                </p>
+              </div>
+
+              <button onClick={payForReport} disabled={busy} className={primaryBtnClass + " mt-5"}>
+                {busy ? <Orb variant="G1" size={15} label="Opening checkout" /> : <Lock size={14} aria-hidden="true" />}
+                {busy ? "Opening checkout…" : `Build my assessment — ${PRICE}`}
+              </button>
+
+              <p className="mt-3 text-center text-[12px] leading-relaxed text-[var(--c-slate)]">
+                Secure checkout by Stripe · one payment, no subscription
+              </p>
+            </div>
+
+            <p className="mt-4 text-[13px] leading-relaxed text-[var(--c-slate)]">
+              Not right now? Your interview stays saved at this page —{" "}
+              <button onClick={copyResumeLink} className="font-medium text-[var(--c-violet)] underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--c-violet)]">
+                {copied ? "link copied" : "copy the link"}
+              </button>{" "}
+              and come back to it.
+            </p>
+          </div>
         </div>
       </main>
     );
   }
 
-  // ── Chat ──
+  /* ─────────────────────────── gate ─────────────────────────── */
+
+  if (!sessionId) {
+    return shell(
+      <main className="flex flex-1 items-start justify-center px-5 py-12 sm:py-16">
+        <div className="grid w-full max-w-4xl gap-10 lg:grid-cols-[1fr_380px] lg:gap-16">
+          <div className="lg:pt-1">
+            <h1 className="text-[clamp(28px,5vw,38px)] font-normal leading-[1.12] tracking-tight text-[var(--c-ink)] text-balance">
+              {paywall === "upfront" ? "Start your assessment." : "Let's talk about how your business runs."}
+            </h1>
+            <p className="mt-4 max-w-[48ch] text-[16px] leading-relaxed text-[var(--c-slate)]">
+              {paywall === "upfront"
+                ? `${PRICE} gets you the interview below and a written assessment of where your business is losing time.`
+                : "Seven questions, about fifteen minutes. Then a written assessment of where your business is losing time."}
+            </p>
+
+            <p className="mt-8 text-[13px] font-medium text-[var(--c-ink)]">What we&apos;ll cover</p>
+            <ul className="mt-2 max-w-[38ch]">
+              {DISCOVERY_TOPICS.map((t, i) => (
+                <TopicRow key={t.id} label={t.label} index={i} state="todo" />
+              ))}
+            </ul>
+          </div>
+
+          <div className="lg:pt-2">
+            {error && <ErrorNote>{error}</ErrorNote>}
+            <form onSubmit={startSession} noValidate>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label htmlFor="d-name" className="mb-1.5 block text-[13px] font-medium text-[var(--c-ink)]">Your name</label>
+                  <input id="d-name" name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
+                </div>
+                <div>
+                  <label htmlFor="d-company" className="mb-1.5 block text-[13px] font-medium text-[var(--c-ink)]">Business name</label>
+                  <input id="d-company" name="organization" autoComplete="organization" value={companyInput} onChange={(e) => setCompanyInput(e.target.value)} aria-describedby="d-company-hint" className={fieldClass} />
+                  <p id="d-company-hint" className="mt-1.5 text-[12px] text-[var(--c-slate)]">Your report is titled and written for this business.</p>
+                </div>
+                <div>
+                  <label htmlFor="d-email" className="mb-1.5 block text-[13px] font-medium text-[var(--c-ink)]">Email</label>
+                  <input id="d-email" name="email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} aria-describedby="d-email-hint" className={fieldClass} />
+                  <p id="d-email-hint" className="mt-1.5 text-[12px] leading-relaxed text-[var(--c-slate)]">Where your finished report gets sent.</p>
+                </div>
+              </div>
+
+              <button type="submit" disabled={busy} className={primaryBtnClass + " mt-6"}>
+                {busy && <Orb variant="G1" size={15} label="One moment" />}
+                {busy ? "One moment…" : paywall === "upfront" ? `Continue to payment — ${PRICE}` : "Start the interview"}
+              </button>
+            </form>
+
+            <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-[var(--c-slate)]">
+              <li>No card to start</li>
+              <li aria-hidden="true">·</li>
+              <li>About 15 minutes</li>
+              <li aria-hidden="true">·</li>
+              <li>{PRICE} only if you want the report</li>
+            </ul>
+            <p className="mt-2.5 max-w-[42ch] text-[12px] leading-relaxed text-[var(--c-slate)]">
+              If your assessment doesn&apos;t find at least 5 recoverable hours a week, it says so on the front page
+              and you pay nothing.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /* ─────────────────────────── chat ─────────────────────────── */
+
+  // The last assistant message is always the live question or probe — everything above
+  // it is the record. Giving it prominence is what tells the user what to answer.
+  const lastAssistant = messages.map((m) => m.role).lastIndexOf("assistant");
+
   return shell(
     <>
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "28px 20px" }}>
-        <div style={{ maxWidth: "660px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "16px" }}>
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-              <div style={{
-                maxWidth: "82%",
-                background: m.role === "user" ? "var(--c-violet)" : "var(--c-white)",
-                color: m.role === "user" ? "#fff" : "var(--c-ink)",
-                border: m.role === "user" ? "none" : "1px solid var(--c-powder)",
-                borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                padding: "13px 17px",
-                fontSize: "15px",
-                lineHeight: 1.65,
-                whiteSpace: "pre-wrap",
-                boxShadow: m.role === "user" ? "none" : "0 1px 4px rgba(0,0,0,0.04)",
-              }}>
-                {m.content}
-              </div>
-            </div>
+      <aside className="hidden w-52 shrink-0 py-8 lg:block">
+        <p className="text-[13px] font-medium text-[var(--c-ink)]">Your interview</p>
+        <ul className="mt-2.5">
+          {DISCOVERY_TOPICS.map((t, i) => (
+            <TopicRow key={t.id} label={t.label} index={i} state={topicState(i, topicIndex)} />
           ))}
+        </ul>
+        <p className="mt-4 border-t border-[var(--c-powder)] pt-3 text-[12px] leading-relaxed text-[var(--c-slate)]">
+          Answers save as you go.
+          {paywall === "report" && <> The report is {PRICE} at the end.</>}
+        </p>
+      </aside>
 
-          {busy && (
-            <div style={{ display: "flex", justifyContent: "flex-start", padding: "13px 17px" }}>
-              <ThinkingState />
-            </div>
-          )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto py-8">
+          <p className="mb-5 text-[13px] text-[var(--c-slate)] lg:hidden">
+            <span className="font-medium text-[var(--c-ink)]">{DISCOVERY_TOPICS[topicIndex]?.label}</span>
+            {" · "}
+            <span className="tabular-nums">{topicIndex + 1} of {TOPIC_COUNT}</span>
+          </p>
+
+          <div className="flex flex-col gap-5" aria-live="polite" aria-atomic="false">
+            {messages.map((m, i) => {
+              const isLive = i === lastAssistant && !busy;
+              if (m.role === "assistant") {
+                return (
+                  <p
+                    key={i}
+                    className={
+                      isLive
+                        ? "max-w-[60ch] text-[19px] leading-[1.5] tracking-tight text-[var(--c-ink)] text-balance"
+                        : "max-w-[62ch] text-[15px] leading-relaxed text-[var(--c-slate)]"
+                    }
+                  >
+                    {m.content}
+                  </p>
+                );
+              }
+              return (
+                <div key={i} className="flex justify-end">
+                  <p className="max-w-[54ch] whitespace-pre-wrap rounded-[10px] rounded-br-[3px] bg-[var(--c-powder)] px-4 py-3 text-[15px] leading-relaxed text-[var(--c-ink)]">
+                    {m.content}
+                  </p>
+                </div>
+              );
+            })}
+
+            {busy && <ThinkingState />}
+          </div>
         </div>
-      </div>
 
-      <div style={{ borderTop: "1px solid var(--c-powder)", background: "var(--c-white)", padding: "14px 20px", flexShrink: 0 }}>
-        <div style={{ maxWidth: "660px", margin: "0 auto" }}>
+        <div className="sticky bottom-0 shrink-0 border-t border-[var(--c-powder)] bg-[var(--c-porcelain)] py-4">
           {error && <ErrorNote>{error}</ErrorNote>}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: "9px" }}>
+          <div className="flex items-end gap-2.5">
+            <label htmlFor="d-answer" className="sr-only">Your answer</label>
             <textarea
+              id="d-answer"
               ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -458,25 +641,28 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
                   send();
                 }
               }}
-              rows={1}
-              placeholder="Type your answer — the more specific, the better."
-              aria-label="Your answer"
-              style={{ ...inputStyle, resize: "none", maxHeight: "160px", minHeight: "44px", lineHeight: 1.55, padding: "12px 14px" }}
+              rows={2}
+              placeholder="Even a rough answer helps — say it how you'd say it out loud."
+              className={fieldClass + " max-h-[200px] min-h-[64px] resize-none leading-relaxed"}
             />
             <button
               onClick={send}
               disabled={busy || !draft.trim()}
               aria-label="Send answer"
-              style={{ flexShrink: 0, width: "44px", height: "44px", borderRadius: "10px", border: "none", background: draft.trim() && !busy ? "var(--c-violet)" : "var(--c-powder)", color: draft.trim() && !busy ? "#fff" : "var(--c-ghost)", cursor: draft.trim() && !busy ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}
+              className="flex size-11 shrink-0 items-center justify-center rounded-[6px] bg-[var(--c-violet)] text-white transition-[background-color,transform] duration-150 hover:bg-[#4630e0] active:translate-y-px disabled:bg-[var(--c-powder)] disabled:text-[var(--c-slate)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--c-violet)]"
             >
-              <ArrowUp size={17} />
+              <ArrowUp size={17} aria-hidden="true" />
             </button>
           </div>
-          <p style={{ fontSize: "11px", color: "var(--c-ghost)", margin: "8px 0 0", textAlign: "center" }}>
-            Enter to send · Shift+Enter for a new line
+          <p className="mt-2 flex items-center justify-between text-[12px] text-[var(--c-slate)]">
+            <span>Enter to send · Shift+Enter for a new line</span>
+            <span className="hidden items-center gap-1.5 sm:inline-flex">
+              <Check size={12} aria-hidden="true" /> Saved as you go
+            </span>
           </p>
         </div>
       </div>
-    </>
+    </>,
+    { rail: true }
   );
 }

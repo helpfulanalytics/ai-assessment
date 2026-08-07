@@ -14,6 +14,8 @@ export interface DiscoveryTopic {
   question: string;
   /** What a complete answer looks like. Drives the probe/advance decision. */
   goal: string;
+  /** Short human name for the topic, shown to the client as the interview's contents. */
+  label: string;
 }
 
 export const DISCOVERY_TOPICS: DiscoveryTopic[] = [
@@ -21,36 +23,43 @@ export const DISCOVERY_TOPICS: DiscoveryTopic[] = [
     id: "business",
     question: "To start — tell me what your business does, and who your customers are.",
     goal: "What they sell, to whom, and roughly how the money comes in. Enough to reason about their operations.",
+    label: "What the business does",
   },
   {
     id: "week",
     question: "Walk me through a typical week for you and your team. What does Monday look like versus Friday?",
     goal: "The actual shape of the work week, and who does what on which days.",
+    label: "A typical week",
   },
   {
     id: "repetitive",
     question: "Which tasks eat the most time but feel repetitive or low-value — the stuff you'd hand off tomorrow if you could?",
     goal: "At least one or two named, concrete recurring tasks, ideally with a rough sense of how often they happen.",
+    label: "Repetitive work",
   },
   {
     id: "tools",
     question: "What software do you use day to day, and where does it fall short?",
     goal: "Named tools, plus the places work still falls back to a spreadsheet, a phone call, or paper.",
+    label: "Tools and gaps",
   },
   {
     id: "cracks",
     question: "Where do things most often fall through the cracks or get delayed?",
     goal: "Specific failure points — missed follow-ups, late invoices, dropped leads, scheduling mixups — not a general 'we're busy'.",
+    label: "Where things slip",
   },
   {
     id: "manual",
     question: "What do you or your staff do by hand that you wish just happened automatically?",
     goal: "Concrete manual steps: copying data between systems, sending the same email, chasing signatures.",
+    label: "Done by hand",
   },
   {
     id: "team",
     question: "Last one — how many people are on your team, and what does each of them own?",
     goal: "Headcount and a rough split of responsibilities, so recommendations land on the right person.",
+    label: "The team",
   },
 ];
 
