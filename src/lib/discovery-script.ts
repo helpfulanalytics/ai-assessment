@@ -27,9 +27,13 @@ export const DISCOVERY_TOPICS: DiscoveryTopic[] = [
   },
   {
     id: "week",
-    question: "Walk me through a typical week for you and your team. What does Monday look like versus Friday?",
-    goal: "The actual shape of the work week, and who does what on which days.",
-    label: "A typical week",
+    // Anchored on a specific, recent day rather than an abstract "typical week" —
+    // recalling one real day is easier than summarizing a pattern, and "Monday
+    // vs Friday" presumes a weekday shape plenty of businesses (anything
+    // 24/7 — healthcare, hospitality, trades on call) don't actually have.
+    question: "Let's get concrete — walk me through yesterday, start to finish. What took up most of your time, and did anything come up that you didn't expect to deal with?",
+    goal: "What one specific recent day actually looked like — the tasks, roughly how the time broke down, and who was involved. A concrete day beats a vague summary of 'the week.'",
+    label: "A day in the life",
   },
   {
     id: "repetitive",
