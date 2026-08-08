@@ -347,8 +347,11 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   /* ─────────────────────────── shell ─────────────────────────── */
 
+  // Fixed to the viewport rather than min-height, so the transcript is the only
+  // thing that scrolls — the header and the topic rail stay put instead of
+  // being carried off by page scroll as the conversation grows.
   const shell = (children: React.ReactNode, opts?: { rail?: boolean }) => (
-    <div className="flex min-h-[100dvh] flex-col bg-[var(--c-porcelain)] font-sans">
+    <div className="flex h-dvh flex-col overflow-hidden bg-[var(--c-porcelain)] font-sans">
       <header className="flex h-13 shrink-0 items-center justify-between border-b border-[var(--c-powder)] bg-[var(--c-white)] px-5 py-3">
         <Logo />
         {sessionId && !chatComplete && (
@@ -366,7 +369,9 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
           </div>
         )}
       </header>
-      <div className={opts?.rail ? "mx-auto flex w-full max-w-5xl flex-1 gap-10 px-5" : "flex flex-1 flex-col"}>{children}</div>
+      <div className={(opts?.rail ? "mx-auto flex w-full max-w-5xl gap-10 px-5" : "flex flex-col") + " min-h-0 flex-1"}>
+        {children}
+      </div>
     </div>
   );
 
@@ -374,7 +379,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   if (generating) {
     return shell(
-      <main className="flex flex-1 items-center justify-center px-5 py-16" aria-busy="true">
+      <main className="flex flex-1 items-center justify-center overflow-y-auto px-5 py-16" aria-busy="true">
         <div className="w-full max-w-[440px]">
           <Orb variant="G1" size={36} style={{ color: "var(--c-violet)" }} label="Building your assessment" />
           <h1 className="mt-5 text-[26px] font-normal leading-tight tracking-tight text-[var(--c-ink)]">
@@ -396,7 +401,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   if (chatComplete && error && !generating) {
     return shell(
-      <main className="flex flex-1 items-center justify-center px-5 py-16">
+      <main className="flex flex-1 items-center justify-center overflow-y-auto px-5 py-16">
         <div className="w-full max-w-[460px]">
           <h1 className="text-[26px] font-normal leading-tight tracking-tight text-[var(--c-ink)]">
             Your interview and your payment are both safe.
@@ -429,7 +434,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   if (blocked) {
     return shell(
-      <main className="flex flex-1 items-start justify-center px-5 py-12 sm:py-16">
+      <main className="flex flex-1 items-start justify-center overflow-y-auto px-5 py-12 sm:py-16">
         <div className="grid w-full max-w-4xl gap-10 lg:grid-cols-[1fr_360px] lg:gap-14">
           <div>
             <p className="text-[13px] text-[var(--c-slate)]">
@@ -504,7 +509,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   if (!sessionId) {
     return shell(
-      <main className="flex flex-1 items-start justify-center px-5 py-12 sm:py-16">
+      <main className="flex flex-1 items-start justify-center overflow-y-auto px-5 py-12 sm:py-16">
         <div className="grid w-full max-w-4xl gap-10 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="lg:pt-1">
             <h1 className="text-[clamp(28px,5vw,38px)] font-normal leading-[1.12] tracking-tight text-[var(--c-ink)] text-balance">
@@ -575,7 +580,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
   return shell(
     <>
-      <aside className="hidden w-52 shrink-0 py-8 lg:block">
+      <aside className="hidden w-52 shrink-0 overflow-y-auto py-8 lg:block">
         <p className="text-[13px] font-medium text-[var(--c-ink)]">Your interview</p>
         <ul className="mt-2.5">
           {DISCOVERY_TOPICS.map((t, i) => (
@@ -588,8 +593,8 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
         </p>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto py-8">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto py-8">
           <p className="mb-5 text-[13px] text-[var(--c-slate)] lg:hidden">
             <span className="font-medium text-[var(--c-ink)]">{DISCOVERY_TOPICS[topicIndex]?.label}</span>
             {" · "}
