@@ -218,7 +218,21 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId }),
       });
-      const data = await res.json();
+
+      // Generation runs 30-90s+ server-side. A dropped connection or a killed
+      // dev server mid-request lands here as an empty body, which res.json()
+      // turns into a raw "Unexpected end of JSON input" SyntaxError — still an
+      // Error instance, so it would otherwise flow straight through to the
+      // customer verbatim. Give it a message that's actually theirs to read.
+      let data: { id?: string; error?: string };
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(
+          "Lost the connection before the report finished. Nothing was charged twice — try again."
+        );
+      }
+
       if (!res.ok) throw new Error(data.error ?? "Report generation failed.");
       router.push(`/assessment/${data.id}`);
     } catch (err) {
