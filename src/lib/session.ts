@@ -30,6 +30,10 @@ export interface SessionMessage {
   content: string;
   /** Which scripted topic this message belongs to. Absent on the opening message. */
   topicId?: string;
+  /** AI-generated example answers to this question, grounded in the conversation
+   *  so far. Assistant messages only; absent on the opening question (the model
+   *  hasn't spoken yet, so the client falls back to the static per-topic list). */
+  suggestions?: string[];
 }
 
 export interface DiscoverySession {
@@ -44,6 +48,8 @@ export interface DiscoverySession {
   /** Follow-ups asked on the current topic. Resets on advance. */
   probeCount: number;
   messages: SessionMessage[];
+  /** Whether the post-interview closing questions (urgency, 90-day win) have been answered. */
+  closingComplete?: boolean;
   reportId?: string;
   stripeSessionId?: string;
   createdAt: string;

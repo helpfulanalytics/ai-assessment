@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import {
+  CLOSING_QUESTIONS,
   DISCOVERY_TOPICS,
   MAX_PROBES_PER_TOPIC,
   MIN_ANSWER_CHARS,
@@ -30,6 +31,9 @@ const MAX_MESSAGE_CHARS = 4000;
 interface TurnDecision {
   action: "probe" | "advance";
   reply: string;
+  /** Two short example answers to the question just asked, grounded in what the
+   *  client has already said. Shown as clickable starters in the answer box. */
+  suggestions: string[];
 }
 
 /**
@@ -51,7 +55,7 @@ const TURN_TOOL: OpenAI.ChatCompletionFunctionTool = {
     parameters: {
       type: "object",
       additionalProperties: false,
-      required: ["action", "reply"],
+      required: ["action", "reply", "suggestions"],
       properties: {
         action: {
           type: "string",
@@ -62,6 +66,14 @@ const TURN_TOOL: OpenAI.ChatCompletionFunctionTool = {
         reply: {
           type: "string",
           description: "What you say next, in your own voice. Two or three sentences at most.",
+        },
+        suggestions: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+          maxItems: 2,
+          description:
+            "Two short example answers to what you just asked in 'reply' — how the client might plausibly start responding. Ground them in specifics from the conversation so far (their actual business, tools, tasks) where you have them; keep them generic and illustrative only when you don't have enough context yet. Write them as the client would say them out loud, not as instructions. These are shown as clickable starter text the client can fill into their answer box — never sent as-is, so it's fine if they don't match exactly.",
         },
       },
     },
@@ -98,7 +110,7 @@ ${mustAdvance
     ? `The client's last answer was very short. Choose "probe" and warmly ask them to give you a bit more detail — a specific example works best.`
     : `Prefer "probe" when there is a concrete detail worth pulling on. Prefer "advance" when the answer already covers what the topic needs, or when the client clearly has nothing more to add.`}
 
-Answer by calling the reply_to_client tool. Put what you say to the client in "reply" and your choice in "action". Everything the client should read goes in "reply" — never write anything outside the tool call.`;
+Answer by calling the reply_to_client tool. Put what you say to the client in "reply", your choice in "action", and two short example answers in "suggestions" — grounded in what they've already told you when you can (their actual business, tools, tasks), generic only when you can't. Everything the client should read goes in "reply" — never write anything outside the tool call.`;
 }
 
 function extractJson(raw: string): string {
@@ -116,9 +128,10 @@ async function decideTurn(
 ): Promise<TurnDecision> {
   const completion = await client.chat.completions.create({
     model: MODEL,
-    // Room for a 2-3 sentence reply plus the tool-call envelope. A truncated
-    // tool call yields unparseable arguments, which costs a whole turn.
-    max_tokens: 512,
+    // Room for a 2-3 sentence reply, two short suggestions, plus the tool-call
+    // envelope. A truncated tool call yields unparseable arguments, which costs
+    // a whole turn.
+    max_tokens: 768,
     tools: [TURN_TOOL],
     tool_choice: { type: "function", function: { name: TURN_TOOL_NAME } },
     messages: [
@@ -128,9 +141,14 @@ async function decideTurn(
   });
 
   const choice = completion.choices[0];
+  const sanitizeSuggestions = (v: unknown): string[] =>
+    Array.isArray(v)
+      ? v.filter((s): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 2)
+      : [];
   const settle = (d: Partial<TurnDecision>, reply: string): TurnDecision => ({
     action: d.action === "probe" && !mustAdvance ? "probe" : "advance",
     reply,
+    suggestions: sanitizeSuggestions(d.suggestions),
   });
 
   // 1. The expected path — arguments are structurally guaranteed by the tool call.
@@ -165,7 +183,7 @@ async function decideTurn(
   console.warn(
     `[discovery] no structured turn for session ${session.id} at topic ${session.topicIndex}; salvaging prose reply.`
   );
-  return { action: mustAdvance ? "advance" : "probe", reply: raw };
+  return { action: mustAdvance ? "advance" : "probe", reply: raw, suggestions: [] };
 }
 
 /** The client-facing view of a session. Never leaks email, Stripe ids, or paywall internals beyond what the UI needs. */
@@ -174,9 +192,14 @@ function publicState(session: DiscoverySession) {
     sessionId: session.id,
     status: session.status,
     paywall: session.paywall,
-    messages: session.messages.map((m) => ({ role: m.role, content: m.content })),
+    messages: session.messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      ...(m.suggestions?.length ? { suggestions: m.suggestions } : {}),
+    })),
     progress: progressOf(session),
     chatComplete: isChatComplete(session),
+    closingComplete: !!session.closingComplete,
     company: session.company,
     reportId: session.reportId ?? null,
   };
@@ -227,6 +250,41 @@ export async function POST(req: NextRequest) {
 
     await updateSession(session.id, { messages: opening });
     return Response.json(publicState({ ...session, messages: opening }));
+  }
+
+  // ── Closing questions (urgency, 90-day win) — asked once the chat itself is done ──
+  if (body.action === "closing") {
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
+    const session = await getSession(sessionId);
+    if (!session) {
+      return Response.json({ error: "Session not found." }, { status: 404 });
+    }
+    if (!isChatComplete(session)) {
+      return Response.json({ error: "The interview isn't finished yet." }, { status: 400 });
+    }
+    // Idempotent: a duplicate submit (double-click, retry) just returns current state.
+    if (session.closingComplete) {
+      return Response.json(publicState(session));
+    }
+
+    const answers = body.answers;
+    if (!answers || typeof answers !== "object") {
+      return Response.json({ error: "Missing answers." }, { status: 400 });
+    }
+
+    // Appended as ordinary Consultant/Client turns — the report generator reads
+    // session.messages as one transcript, so these need no separate handling there.
+    const extra: SessionMessage[] = [];
+    for (const q of CLOSING_QUESTIONS) {
+      const text = (answers as Record<string, unknown>)[q.id];
+      if (typeof text !== "string" || !text.trim()) continue;
+      extra.push({ role: "assistant", content: q.title });
+      extra.push({ role: "user", content: text.trim() });
+    }
+
+    const messages = [...session.messages, ...extra];
+    await updateSession(session.id, { messages, closingComplete: true });
+    return Response.json(publicState({ ...session, messages, closingComplete: true }));
   }
 
   // ── Resume or advance an existing session ──
@@ -292,6 +350,7 @@ export async function POST(req: NextRequest) {
       role: "assistant",
       content: decision.reply,
       ...(nextTopic ? { topicId: nextTopic.id } : {}),
+      ...(decision.suggestions.length > 0 ? { suggestions: decision.suggestions } : {}),
     },
   ];
 

@@ -33,8 +33,13 @@ export default async function DiscoveryPage({ searchParams }: Props) {
         company: session.company,
         reportId: session.reportId ?? null,
         chatComplete: isChatComplete(session),
+        closingComplete: !!session.closingComplete,
         progress: progressOf(session),
-        messages: session.messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: session.messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          ...(m.suggestions?.length ? { suggestions: m.suggestions } : {}),
+        })),
       };
     }
   }

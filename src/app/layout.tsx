@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import PageTransition from "../components/PageTransition";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const SITE_URL = "https://erasefriction.com";
 
@@ -40,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body>
         <PageTransition>{children}</PageTransition>
       </body>

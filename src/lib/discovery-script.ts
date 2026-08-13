@@ -68,6 +68,70 @@ export const DISCOVERY_TOPICS: DiscoveryTopic[] = [
 ];
 
 /**
+ * Starter phrases offered per topic while the answer box is empty — not answers
+ * to submit as-is, just a way to unstick a blank page. Keyed by DiscoveryTopic id.
+ */
+export const TOPIC_SUGGESTIONS: Record<string, string[]> = {
+  business: [
+    "I run a [type of business] that sells [product or service] to [type of customer].",
+    "We're a small team that mainly works with [kind of client].",
+  ],
+  week: [
+    "Yesterday I started the day by... then spent most of my time on...",
+    "A typical day is a mix of [task] in the morning and [task] later on.",
+  ],
+  repetitive: [
+    "The task I dread most is... and I do it about [X] times a [day/week].",
+    "I'd hand off [task] tomorrow if I could — it's just repetitive busywork.",
+  ],
+  tools: [
+    "We use [tool] for [job], but it falls short when...",
+    "A lot of work still happens in a spreadsheet, especially for...",
+  ],
+  cracks: [
+    "Things usually slip when... — we've missed [follow-ups/invoices/leads] because of it.",
+    "The biggest delay tends to happen between [step] and [step].",
+  ],
+  manual: [
+    "I wish [task] happened automatically instead of me copying it between [systems].",
+    "Every [day/week] I manually [task] — it's the same steps every time.",
+  ],
+  team: [
+    "It's just me right now, and I handle everything from [area] to [area].",
+    "There are [N] of us — I own [area], and [person] handles [area].",
+  ],
+};
+
+/**
+ * The closing step — asked once all seven topics are covered, before the report
+ * is built. Answers get appended to the transcript as ordinary Consultant/Client
+ * turns, so the report generator picks them up with no changes on its side.
+ * Implements the "Defining Success & Urgency" close from the discovery-call
+ * question bank (see docs/discovery-call-questions.md) that the scripted
+ * interview itself never asked.
+ */
+export const CLOSING_QUESTIONS = [
+  {
+    id: "urgency",
+    title: "One last thing — how urgent does fixing this feel?",
+    skippable: false,
+    options: [
+      { id: "now", title: "It's costing us now", description: "I want this fixed as soon as possible." },
+      { id: "soon", title: "Important, but not on fire", description: "I could live with it for another 60 days." },
+      { id: "exploring", title: "Just exploring", description: "Seeing what's out there before committing to anything." },
+    ],
+  },
+  {
+    id: "win",
+    title: "And ninety days from now, what would make this whole thing feel like a win?",
+    skippable: false,
+    freeText: true,
+    freeTextMultiline: true,
+    freeTextPlaceholder: "In your own words…",
+  },
+];
+
+/**
  * How many follow-ups the model may ask before it must move on.
  *
  * Two is deliberate. One probe is the difference between a form and a conversation;
