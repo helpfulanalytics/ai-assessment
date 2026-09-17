@@ -37,7 +37,7 @@ const defaultColumns: Footer14Column[] = [
   {
     title: "GET STARTED",
     links: [
-      { label: "Start your assessment", href: "/discovery" },
+      { label: "Start your assessment", href: "/start" },
       { label: "EraseFriction", href: "https://erasefriction.com" },
     ],
   },

@@ -131,7 +131,7 @@ export function Hero32({
   logoText = "AssessAI",
   navItems = navItemsDefault,
   loginText = "Start — $297",
-  loginHref = "/discovery",
+  loginHref = "/start",
   title = (
     <>
       You know your business <br />
@@ -147,7 +147,7 @@ export function Hero32({
     </>
   ),
   primaryActionText = "Start your assessment",
-  primaryActionHref = "/discovery",
+  primaryActionHref = "/start",
   secondaryActionLabel = "See what's in the report",
   secondaryActionHref = "#what-you-get",
   reassurance = "No card to start \u00b7 About 15 minutes \u00b7 $297 only if you want the report",

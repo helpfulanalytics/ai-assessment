@@ -59,7 +59,7 @@ function CTA({ children, subtle }: { children: React.ReactNode; subtle?: boolean
   const [hovered, setHovered] = useState(false);
   return (
     <Link
-      href="/discovery"
+      href="/start"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
