@@ -11,25 +11,32 @@
 
 /* ── Light tokens ── */
 :root {
-  --c-ink:       #061b31;
-  --c-slate:     #50617a;
-  --c-ghost:     #64748d;
+  /* erase friction brand — see brand.md. --c-canvas is the page ground (a warm
+     bone, deliberately not white); --c-white stays white so cards read as
+     lifted against it. That contrast is the brand's defining move. */
+  --c-canvas:    #f5f4f0;
+  --c-ink:       #1a1a1a;
+  --c-slate:     #5f6774;
+  --c-ghost:     #858c98;
   --c-white:     #ffffff;
-  --c-porcelain: #f8fafd;
-  --c-powder:    #e5edf5;
-  --c-stone:     #d8d6df;
-  --c-violet:    #533afd;
-  --c-washed:    #b9b9f9;
-  --c-soft:      #8087ff;
+  --c-porcelain: #eeece7;
+  --c-powder:    #e5e7eb;
+  --c-stone:     #d1d5db;
+  /* The readable teal (brand --color-accent-hover), not the brighter
+     --color-accent: this token carries type as often as it fills. */
+  --c-violet:    #0f766e;
+  --c-violet-deep: #115e59;
+  --c-washed:    #ccfbf1;
+  --c-soft:      #5eead4;
   --c-green:     #81b81a;
   --c-orange:    #ff6118;
   --c-green-bg:  #f0f9e0;
   --c-orange-bg: #fff2eb;
-  --c-violet-bg: #ede9ff;
+  --c-violet-bg: #f0fdfa;
   /* Registry components (AskUserQuestions, Button, ThinkingSteps, InputMessage)
      fall back to a hardcoded blue (#6B97FF) wherever this is unset — define it
-     so their focus rings match the page's own neutral colorway instead. */
-  --focus-ring: var(--c-ink);
+     so their focus rings match the brand accent, like the global ring below. */
+  --focus-ring: var(--c-violet);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -83,27 +90,31 @@
 
 /* ── Dark tokens ── */
 html.dark {
-  --c-ink:       #e2e8f0;
-  --c-slate:     #94a3b8;
-  --c-ghost:     #64748b;
-  --c-white:     #0f172a;
-  --c-porcelain: #1e293b;
-  --c-powder:    #1e293b;
-  --c-stone:     #334155;
-  --c-violet:    #818cf8;
-  --c-washed:    #3730a3;
-  --c-soft:      #a5b4fc;
+  /* Dark mode is grounded on the brand's one dark region (the site footer,
+     #111827) rather than the previous blue-tinted slate. */
+  --c-canvas:    #111827;
+  --c-ink:       #f9fafb;
+  --c-slate:     #9ca3af;
+  --c-ghost:     #6b7280;
+  --c-white:     #1f2937;
+  --c-porcelain: #171f2b;
+  --c-powder:    #374151;
+  --c-stone:     #4b5563;
+  --c-violet:    #2dd4bf;
+  --c-violet-deep: #5eead4;
+  --c-washed:    #115e59;
+  --c-soft:      #5eead4;
   --c-green:     #86efac;
   --c-orange:    #fb923c;
   --c-green-bg:  #14532d;
   --c-orange-bg: #431407;
-  --c-violet-bg: #1e1b4b;
+  --c-violet-bg: #042f2e;
 }
 
 * { box-sizing: border-box; }
 
 body {
-  background: var(--c-white);
+  background: var(--c-canvas);
   color: var(--c-ink);
   font-family: var(--font-sans);
   font-feature-settings: "ss01" on, "tnum";

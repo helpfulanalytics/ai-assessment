@@ -14,7 +14,7 @@ export default function OGImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "#061b31",
+          background: "#1a1a1a",
           position: "relative",
           overflow: "hidden",
           fontFamily: "system-ui, -apple-system, sans-serif",
@@ -29,7 +29,7 @@ export default function OGImage() {
             width: "600px",
             height: "600px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(83,58,253,0.45) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(13,148,136,0.45) 0%, transparent 65%)",
             display: "flex",
           }}
         />
@@ -41,7 +41,7 @@ export default function OGImage() {
             width: "400px",
             height: "400px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(128,135,255,0.2) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(94,234,212,0.2) 0%, transparent 65%)",
             display: "flex",
           }}
         />
@@ -75,7 +75,7 @@ export default function OGImage() {
                 width: "42px",
                 height: "42px",
                 borderRadius: "10px",
-                background: "#533afd",
+                background: "#0d9488",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -98,15 +98,15 @@ export default function OGImage() {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "rgba(83,58,253,0.2)",
-                border: "1px solid rgba(83,58,253,0.4)",
+                background: "rgba(13,148,136,0.2)",
+                border: "1px solid rgba(13,148,136,0.4)",
                 borderRadius: "20px",
                 padding: "6px 16px",
                 width: "fit-content",
               }}
             >
-              <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#8087ff", display: "flex" }} />
-              <span style={{ fontSize: "14px", fontWeight: 500, color: "#8087ff", letterSpacing: "0.3px" }}>
+              <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#5eead4", display: "flex" }} />
+              <span style={{ fontSize: "14px", fontWeight: 500, color: "#5eead4", letterSpacing: "0.3px" }}>
                 AI BUSINESS ASSESSMENT
               </span>
             </div>
@@ -123,13 +123,13 @@ export default function OGImage() {
                 }}
               >
                 You know your business is wasting time.{"\n"}
-                <span style={{ color: "#8087ff" }}>This tells you exactly where.</span>
+                <span style={{ color: "#5eead4" }}>This tells you exactly where.</span>
               </h1>
               <p
                 style={{
                   fontSize: "22px",
                   fontWeight: 400,
-                  color: "#94a3b8",
+                  color: "#9ca3af",
                   margin: 0,
                   lineHeight: 1.5,
                   maxWidth: "700px",
@@ -158,7 +158,7 @@ export default function OGImage() {
                   borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.1)" : "none",
                 }}
               >
-                <span style={{ fontSize: "30px", fontWeight: 300, color: "#533afd", letterSpacing: "-0.03em", lineHeight: 1 }}>
+                <span style={{ fontSize: "30px", fontWeight: 300, color: "#0d9488", letterSpacing: "-0.03em", lineHeight: 1 }}>
                   {stat.value}
                 </span>
                 <span style={{ fontSize: "13px", color: "#64748b" }}>{stat.label}</span>

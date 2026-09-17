@@ -6,12 +6,12 @@
  * Table-based layout and inline styles are deliberate — email clients require it.
  */
 
-const INK = "#061b31";
-const SLATE = "#50617a";
-const GHOST = "#64748d";
-const PORCELAIN = "#f8fafd";
-const POWDER = "#e5edf5";
-const VIOLET = "#533afd";
+const INK = "#1a1a1a";
+const SLATE = "#5f6774";
+const GHOST = "#858c98";
+const PORCELAIN = "#f5f4f0";
+const POWDER = "#e5e7eb";
+const VIOLET = "#0f766e";
 
 function shell(bodyHtml: string): string {
   return `<!DOCTYPE html>

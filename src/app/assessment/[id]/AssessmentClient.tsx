@@ -315,7 +315,7 @@ export default function AssessmentClient({ report, id }: Props) {
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: "16px",
-          background: "linear-gradient(135deg, #533afd08 0%, #533afd14 100%)",
+          background: "linear-gradient(135deg, #0f766e08 0%, #0f766e14 100%)",
           border: "1px solid var(--c-washed)",
           borderRadius: "14px", padding: "20px 24px",
           marginBottom: "28px",
@@ -520,7 +520,7 @@ export default function AssessmentClient({ report, id }: Props) {
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             flexWrap: "wrap", gap: "16px",
-            background: "linear-gradient(135deg, #533afd08 0%, #533afd14 100%)",
+            background: "linear-gradient(135deg, #0f766e08 0%, #0f766e14 100%)",
             border: "1px solid var(--c-washed)",
             borderRadius: "14px", padding: "22px 24px", marginBottom: "28px",
           }}>

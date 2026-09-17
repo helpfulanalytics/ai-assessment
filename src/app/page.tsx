@@ -6,7 +6,7 @@ import {
   MessageSquareText, FileText, ShieldCheck, Clock,
   ArrowRight, Check, Plus, Minus,
 } from "lucide-react";
-import { Hero7 } from "../components/ui/Hero7";
+import { Hero32 } from "../components/ui/Hero32";
 import { Footer14 } from "../components/ui/Footer14";
 
 const PRICE = "$297";
@@ -74,7 +74,7 @@ function CTA({ children, subtle }: { children: React.ReactNode; subtle?: boolean
         letterSpacing: "-0.01em",
         textDecoration: "none",
         transform: hovered ? "translateY(-1px)" : "translateY(0)",
-        boxShadow: hovered && !subtle ? "0 8px 22px -6px rgba(83,58,253,0.45)" : "none",
+        boxShadow: hovered && !subtle ? "0 8px 22px -6px rgba(13,148,136,0.45)" : "none",
         transition: "transform 200ms cubic-bezier(0.22,1,0.36,1), box-shadow 200ms ease",
       }}
     >
@@ -193,9 +193,9 @@ function FAQItem({ q, a, delay }: { q: string; a: string; delay: number }) {
 
 export default function Home() {
   return (
-    <div style={{ background: "var(--c-white)", fontFamily: "var(--font-sans)", overflowX: "hidden" }}>
+    <div style={{ background: "var(--c-canvas)", fontFamily: "var(--font-sans)", overflowX: "hidden" }}>
 
-      <Hero7 />
+      <Hero32 />
 
       {/* ── How it works ── */}
       <section id="how-it-works" style={{ background: "var(--c-porcelain)", borderTop: "1px solid var(--c-powder)", borderBottom: "1px solid var(--c-powder)", padding: "clamp(56px, 9vw, 96px) 0" }}>
@@ -306,7 +306,7 @@ export default function Home() {
             <p style={{ fontSize: "clamp(52px, 9vw, 82px)", fontWeight: 300, color: "#fff", letterSpacing: "-0.045em", lineHeight: 1, margin: "0 0 14px", fontVariantNumeric: "tabular-nums" }}>
               {PRICE}
             </p>
-            <p style={{ fontSize: "16px", color: "#a9b6c9", lineHeight: 1.7, margin: "0 auto 32px", maxWidth: "430px" }}>
+            <p style={{ fontSize: "16px", color: "#9ca3af", lineHeight: 1.7, margin: "0 auto 32px", maxWidth: "430px" }}>
               No subscription, no upsell, no call to book. You answer the questions, you get the
               document, it&apos;s yours.
             </p>
@@ -315,9 +315,9 @@ export default function Home() {
               <CTA>Start your assessment</CTA>
             </div>
 
-            <div style={{ display: "inline-flex", alignItems: "flex-start", gap: "9px", maxWidth: "460px", textAlign: "left", borderTop: "1px solid #1e3855", paddingTop: "24px" }}>
+            <div style={{ display: "inline-flex", alignItems: "flex-start", gap: "9px", maxWidth: "460px", textAlign: "left", borderTop: "1px solid #ffffff1f", paddingTop: "24px" }}>
               <ShieldCheck size={17} style={{ color: "var(--c-green)", flexShrink: 0, marginTop: "2px" }} />
-              <p style={{ fontSize: "14px", color: "#a9b6c9", lineHeight: 1.65, margin: 0 }}>
+              <p style={{ fontSize: "14px", color: "#9ca3af", lineHeight: 1.65, margin: 0 }}>
                 <strong style={{ color: "#fff", fontWeight: 600 }}>Find 5 hours a week, or it&apos;s free.</strong>{" "}
                 Your report calculates the number from your own answers. If it lands under five, it
                 says so on the front page and we refund you in full.

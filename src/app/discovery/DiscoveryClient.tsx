@@ -479,7 +479,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
   // Fixed to the viewport rather than min-height, so only the active pane
   // scrolls internally — the sidebar never gets carried off by page scroll.
   const shell = (children: React.ReactNode) => (
-    <div className="flex h-dvh overflow-hidden bg-[var(--c-white)] font-sans">
+    <div className="flex h-dvh overflow-hidden bg-[var(--c-canvas)] font-sans">
       <motion.aside
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
@@ -853,7 +853,7 @@ export default function DiscoveryClient({ initial }: { initial: InitialState }) 
 
       {/* Floating composer — fades the transcript out behind it instead of a hard
           divider, so scrolled content disappears gradually under the input. */}
-      <div className="shrink-0 bg-gradient-to-t from-[var(--c-white)] via-[var(--c-white)] to-transparent px-5 pb-6 pt-6 sm:px-8">
+      <div className="shrink-0 bg-gradient-to-t from-[var(--c-canvas)] via-[var(--c-canvas)] to-transparent px-5 pb-6 pt-6 sm:px-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

@@ -52,12 +52,12 @@ export default function PageTransition({ children }: { children: React.ReactNode
       {showBar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, height: "2px",
-          zIndex: 9999, background: "rgba(83,58,253,0.12)",
+          zIndex: 9999, background: "rgba(13,148,136,0.12)",
           overflow: "hidden",
         }}>
           <div style={{
             height: "100%",
-            background: "linear-gradient(90deg, #533afd, #8087ff)",
+            background: "linear-gradient(90deg, #0d9488, #5eead4)",
             transformOrigin: "left center",
             animation: "barLoad 500ms cubic-bezier(0.23, 1, 0.32, 1) forwards",
           }} />

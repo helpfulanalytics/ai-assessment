@@ -145,7 +145,7 @@ export function Hero7({
           aria-hidden="true"
           className="h-full w-full object-cover opacity-60 outline outline-1 outline-black/10"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-white/60 via-[var(--c-porcelain)]/30 to-[var(--c-violet-bg)]/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--c-canvas)]/60 via-[var(--c-porcelain)]/30 to-[var(--c-violet-bg)]/40" />
       </motion.div>
 
       <div className="relative z-10 flex min-h-[720px] w-full flex-col px-7 py-4 sm:min-h-screen sm:px-10 lg:px-12">
@@ -171,7 +171,7 @@ export function Hero7({
                 href={item.href}
                 className={
                   item.active
-                    ? "inline-flex min-h-10 items-center rounded-full bg-[var(--c-violet-bg)] px-6 text-base font-medium text-[var(--c-ink)] shadow-[0_1px_0_0.5px_rgba(255,255,255,0.15)_inset,0_8px_18px_rgba(83,58,253,0.1)] transition-[background-color,transform] duration-200 active:scale-[0.96]"
+                    ? "inline-flex min-h-10 items-center rounded-full bg-[var(--c-violet-bg)] px-6 text-base font-medium text-[var(--c-ink)] shadow-[0_1px_0_0.5px_rgba(255,255,255,0.15)_inset,0_8px_18px_rgba(13,148,136,0.1)] transition-[background-color,transform] duration-200 active:scale-[0.96]"
                     : "inline-flex min-h-8 items-center px-2 text-base font-medium text-[var(--c-slate)] transition-colors duration-200 hover:text-[var(--c-violet)]"
                 }
               >
@@ -183,7 +183,7 @@ export function Hero7({
           <div className="hidden items-center gap-5 md:flex">
             <Cta
               href={signupHref}
-              className="inline-flex min-h-10 items-center rounded-[10px] bg-[var(--c-violet-bg)] px-6 text-base font-medium text-[var(--c-ink)] shadow-[0_1px_0_0.5px_rgba(255,255,255,0.7)_inset,0_10px_24px_rgba(83,58,253,0.08)] transition-[background-color,transform,box-shadow] duration-200 hover:bg-white"
+              className="inline-flex min-h-10 items-center rounded-[10px] bg-[var(--c-violet-bg)] px-6 text-base font-medium text-[var(--c-ink)] shadow-[0_1px_0_0.5px_rgba(255,255,255,0.7)_inset,0_10px_24px_rgba(13,148,136,0.08)] transition-[background-color,transform,box-shadow] duration-200 hover:bg-white"
             >
               {signupText}
             </Cta>
@@ -194,7 +194,7 @@ export function Hero7({
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(true)}
-            className="flex min-h-10 min-w-10 items-center justify-center rounded-[10px] bg-white text-[var(--c-ink)] shadow-[0_8px_18px_rgba(83,58,253,0.08)] transition-transform duration-200 active:scale-[0.96] md:hidden"
+            className="flex min-h-10 min-w-10 items-center justify-center rounded-[10px] bg-white text-[var(--c-ink)] shadow-[0_8px_18px_rgba(13,148,136,0.08)] transition-transform duration-200 active:scale-[0.96] md:hidden"
           >
             <Menu className="h-4 w-4" />
           </button>
@@ -274,7 +274,7 @@ export function Hero7({
             <motion.div variants={copyItem} className="mt-6 flex flex-wrap items-center gap-6">
               <Cta
                 href={primaryCtaHref}
-                className="inline-flex min-h-12 items-center justify-center rounded-[10px] bg-gradient-to-b from-[var(--c-violet)] to-[#3d2bc4] px-9 text-base font-normal text-white shadow-[0_12px_30px_rgba(83,58,253,0.22),inset_0_-0.5px_2px_1px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.12)] transition-[background-color,transform,box-shadow] duration-200 hover:opacity-95"
+                className="inline-flex min-h-12 items-center justify-center rounded-[10px] bg-gradient-to-b from-[var(--c-violet)] to-[#115e59] px-9 text-base font-normal text-white shadow-[0_12px_30px_rgba(13,148,136,0.22),inset_0_-0.5px_2px_1px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.12)] transition-[background-color,transform,box-shadow] duration-200 hover:opacity-95"
               >
                 {primaryCtaText}
               </Cta>

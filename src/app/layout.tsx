@@ -3,6 +3,7 @@ import "./globals.css";
 import PageTransition from "../components/PageTransition";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { Agentation } from "agentation";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -47,6 +48,7 @@ export default function RootLayout({
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body>
         <PageTransition>{children}</PageTransition>
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );
